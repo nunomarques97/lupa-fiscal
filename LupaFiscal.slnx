@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LupaFiscal.Api/LupaFiscal.Api.csproj" />
+    <Project Path="src/LupaFiscal.Cli/LupaFiscal.Cli.csproj" />
+    <Project Path="src/LupaFiscal.Core/LupaFiscal.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LupaFiscal.Tests/LupaFiscal.Tests.csproj" />
+  </Folder>
+</Solution>

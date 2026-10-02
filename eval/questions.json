@@ -1,0 +1,553 @@
+{
+  "description": "Lupa Fiscal retrieval eval: 50 plain-Portuguese questions about CIRS rulings, each with the rulings that answer it. Frozen on 2026-10-02 before any tuning; see eval/README.md.",
+  "frozen": "2026-10-02",
+  "questions": [
+    {
+      "id": "q01",
+      "article": "10",
+      "question": "Vendi o apartamento onde morava e quero usar o dinheiro para comprar uma casa nova para viver e outra para pôr a arrendar. Fico isento de mais-valias sobre o valor todo?",
+      "expected": [
+        "piv_31329",
+        "piv_30947",
+        "piv_30696"
+      ]
+    },
+    {
+      "id": "q02",
+      "article": "10",
+      "question": "Comprei bitcoin há mais de um ano e vendi agora com lucro. Tenho de pagar IRS sobre esse ganho?",
+      "expected": [
+        "piv_29052",
+        "piv_28122"
+      ]
+    },
+    {
+      "id": "q03",
+      "article": "10",
+      "question": "Herdei uma casa com os meus irmãos e ainda não fizemos partilhas. Se a vendermos agora, como é que cada um de nós paga as mais-valias?",
+      "expected": [
+        "piv_30382",
+        "piv_28689",
+        "piv_30544",
+        "piv_29418",
+        "piv_29295",
+        "piv_28145",
+        "piv_29377",
+        "piv_29306",
+        "piv_29061",
+        "piv_29226",
+        "piv_29144",
+        "piv_29107",
+        "piv_29067",
+        "piv_28525",
+        "piv_30678"
+      ]
+    },
+    {
+      "id": "q04",
+      "article": "10",
+      "question": "Vendi um apartamento que usava como casa de férias. Se usar o dinheiro para abater ao crédito da casa onde vivo, deixo de pagar imposto sobre o ganho?",
+      "expected": [
+        "piv_25748",
+        "piv_27805",
+        "piv_27350",
+        "piv_25547",
+        "piv_26266",
+        "piv_25695",
+        "piv_25814",
+        "piv_27604",
+        "piv_26471",
+        "piv_26063",
+        "piv_25627"
+      ]
+    },
+    {
+      "id": "q05",
+      "article": "10",
+      "question": "Agora vivo em Espanha. Vendi a casa onde morava em Portugal; posso reinvestir o dinheiro numa casa em Espanha e não pagar mais-valias?",
+      "expected": [
+        "piv_30128",
+        "ficha_doutrinaria_piv_reinvestimento_noutro_em"
+      ]
+    },
+    {
+      "id": "q06",
+      "article": "10",
+      "question": "Já passaram quase três anos desde que vendi a minha casa e ainda não consegui comprar outra. Posso pedir mais tempo para fazer o reinvestimento?",
+      "expected": [
+        "piv_29178",
+        "piv_28186",
+        "piv_23546",
+        "piv_25511",
+        "piv_26917",
+        "piv_28910"
+      ]
+    },
+    {
+      "id": "q07",
+      "article": "10",
+      "question": "Sou reformado e vendi a minha casa. Em vez de comprar outra, posso pôr o dinheiro num seguro de vida ou num PPR para não pagar mais-valias?",
+      "expected": [
+        "piv_29093",
+        "piv_26369",
+        "piv_25164",
+        "piv_23660",
+        "piv_23902"
+      ]
+    },
+    {
+      "id": "q08",
+      "article": "10",
+      "question": "Moro no Brasil e vou vender o meu apartamento em Lisboa. Como é tributado o ganho e posso beneficiar do reinvestimento numa nova casa?",
+      "expected": [
+        "piv_29065",
+        "piv_28272",
+        "piv_29075",
+        "piv_14194_mvi_reinvestimento_por_nao_residente",
+        "piv_12894"
+      ]
+    },
+    {
+      "id": "q09",
+      "article": "72",
+      "question": "Arrendei o meu apartamento a uma empresa que o usa para alojar um funcionário. Posso ter a taxa mais baixa dos contratos de arrendamento para habitação de longa duração?",
+      "expected": [
+        "piv_30751",
+        "piv_30248",
+        "piv_28573",
+        "piv_27608",
+        "piv_26047"
+      ]
+    },
+    {
+      "id": "q10",
+      "article": "72",
+      "question": "Passo recibos verdes e tenho o estatuto de residente não habitual. Posso escolher englobar os rendimentos num ano e no ano seguinte voltar à taxa especial?",
+      "expected": [
+        "piv_29235"
+      ]
+    },
+    {
+      "id": "q11",
+      "article": "72",
+      "question": "Vendi ações que tinha comprado há menos de um ano e ganhei dinheiro. Sou obrigado a juntar esse ganho aos outros rendimentos na declaração?",
+      "expected": [
+        "piv_25182"
+      ]
+    },
+    {
+      "id": "q12",
+      "article": "2",
+      "question": "A empresa paga-me um valor todos os meses para a internet e a eletricidade porque estou em teletrabalho. Esse dinheiro paga IRS?",
+      "expected": [
+        "piv_25747",
+        "piv_25439"
+      ]
+    },
+    {
+      "id": "q13",
+      "article": "2",
+      "question": "Fui despedido e recebi uma indemnização pelo fim do contrato de trabalho. Que parte dessa indemnização fica sujeita a IRS?",
+      "expected": [
+        "piv_29455",
+        "piv_25270",
+        "piv_27109",
+        "piv_27784",
+        "piv_26970",
+        "piv_20379"
+      ]
+    },
+    {
+      "id": "q14",
+      "article": "2",
+      "question": "O meu empregador paga o seguro de saúde e algumas consultas médicas dos trabalhadores. Isso conta como rendimento meu para o IRS?",
+      "expected": [
+        "piv_29073"
+      ]
+    },
+    {
+      "id": "q15",
+      "article": "12-B",
+      "question": "Tenho 28 anos e acabei o mestrado há três anos. A partir de que ano se contam os anos do IRS Jovem e durante quanto tempo posso beneficiar?",
+      "expected": [
+        "piv_29668",
+        "piv_29492",
+        "piv_27692",
+        "piv_28299",
+        "piv_28236",
+        "piv_27728",
+        "piv_27688",
+        "piv_28184",
+        "piv_27754",
+        "piv_27732",
+        "piv_27731",
+        "piv_27762",
+        "piv_27756",
+        "piv_27752",
+        "piv_27746",
+        "piv_27730",
+        "piv_27706",
+        "piv_26016"
+      ]
+    },
+    {
+      "id": "q16",
+      "article": "12-B",
+      "question": "Tenho o estatuto de residente não habitual mas ainda não fiz 35 anos. Posso desistir desse estatuto para passar a ter o IRS Jovem?",
+      "expected": [
+        "piv_27986",
+        "piv_27869",
+        "piv_27822",
+        "piv_27700",
+        "piv_29134",
+        "piv_28704",
+        "piv_28224",
+        "piv_28036",
+        "piv_30784",
+        "piv_30640",
+        "piv_30211",
+        "piv_30228",
+        "piv_30100",
+        "piv_30012",
+        "piv_30016",
+        "piv_29525",
+        "piv_28230",
+        "piv_29526",
+        "piv_29319"
+      ]
+    },
+    {
+      "id": "q17",
+      "article": "12-B",
+      "question": "Sou estrangeiro, estudei no meu país e vim trabalhar para Portugal. Também tenho direito ao IRS Jovem?",
+      "expected": [
+        "piv_28682",
+        "piv_28538"
+      ]
+    },
+    {
+      "id": "q18",
+      "article": "3",
+      "question": "Trabalho por conta própria como coach. Como é que esta atividade é enquadrada no IRS?",
+      "expected": [
+        "piv_22474"
+      ]
+    },
+    {
+      "id": "q19",
+      "article": "3",
+      "question": "Ganhei um prémio num concurso que avaliava o meu desempenho. Esse prémio é tributado em IRS?",
+      "expected": [
+        "piv_12875"
+      ]
+    },
+    {
+      "id": "q20",
+      "article": "8",
+      "question": "No acordo de divórcio ficou combinado que o meu ex-cônjuge me paga uma compensação por ficar a viver sozinho na casa que era de ambos. Tenho de declarar isso como renda?",
+      "expected": [
+        "piv_28678"
+      ]
+    },
+    {
+      "id": "q21",
+      "article": "8",
+      "question": "Uma empresa de energia paga-me todos os anos para instalar equipamento num terreno meu, através de um direito de superfície. Como é tributado esse dinheiro?",
+      "expected": [
+        "piv_28115",
+        "piv_24854"
+      ]
+    },
+    {
+      "id": "q22",
+      "article": "21",
+      "question": "Posso levantar o meu PPR antes da reforma para pagar as prestações do crédito da casa sem ser penalizado?",
+      "expected": [
+        "piv_27140",
+        "piv_27659",
+        "piv_24773",
+        "piv_26321",
+        "piv_25086",
+        "piv_24562",
+        "piv_25200",
+        "piv_25823",
+        "piv_25012",
+        "piv_24759"
+      ]
+    },
+    {
+      "id": "q23",
+      "article": "21",
+      "question": "Estou desempregado há mais de um ano. Se resgatar o PPR perco os benefícios fiscais que tive?",
+      "expected": [
+        "piv_27083"
+      ]
+    },
+    {
+      "id": "q24",
+      "article": "41",
+      "question": "Tenho uma casa arrendada e fiz obras de remodelação, mas algumas faturas ficaram em nome de outra pessoa. Posso abater essas despesas às rendas?",
+      "expected": [
+        "piv_30549",
+        "piv_30545"
+      ]
+    },
+    {
+      "id": "q25",
+      "article": "41",
+      "question": "Instalei painéis solares no prédio que tenho arrendado. Posso descontar esse custo nas rendas que recebo?",
+      "expected": [
+        "piv_23775"
+      ]
+    },
+    {
+      "id": "q26",
+      "article": "51",
+      "question": "Vendi uma casa e tive de pagar ao banco para liquidar o empréstimo e cancelar a hipoteca. Posso abater esses encargos ao ganho da venda?",
+      "expected": [
+        "piv_30373"
+      ]
+    },
+    {
+      "id": "q27",
+      "article": "51",
+      "question": "Paguei a um advogado pelo processo de inventário da herança antes de vender um imóvel herdado. Esses honorários contam como despesa no cálculo da mais-valia?",
+      "expected": [
+        "piv_25752"
+      ]
+    },
+    {
+      "id": "q28",
+      "article": "5",
+      "question": "Ganhei uma ação em tribunal e recebi juros de mora sobre o dinheiro que me deviam. Esses juros pagam IRS?",
+      "expected": [
+        "piv_29979"
+      ]
+    },
+    {
+      "id": "q29",
+      "article": "12",
+      "question": "Recebo uma pensão de invalidez paga pela Suíça. Tenho de a declarar e pagar IRS em Portugal?",
+      "expected": [
+        "piv_30631"
+      ]
+    },
+    {
+      "id": "q30",
+      "article": "12",
+      "question": "Tive um acidente de carro e a seguradora pagou-me uma indemnização pelos ferimentos. Essa indemnização é tributada?",
+      "expected": [
+        "piv_24224"
+      ]
+    },
+    {
+      "id": "q31",
+      "article": "81",
+      "question": "Sou residente não habitual e vendi um apartamento que tinha na Alemanha. Esse ganho é tributado em Portugal?",
+      "expected": [
+        "piv_26820",
+        "piv_29518",
+        "piv_28723"
+      ]
+    },
+    {
+      "id": "q32",
+      "article": "87",
+      "question": "Na reavaliação do atestado multiuso o meu grau de incapacidade desceu para menos de 60 %. Continuo a ter a dedução por deficiência?",
+      "expected": [
+        "piv_28950",
+        "piv_26695",
+        "piv_25436",
+        "piv_25415",
+        "piv_25996",
+        "piv_25893",
+        "piv_29836"
+      ]
+    },
+    {
+      "id": "q33",
+      "article": "13",
+      "question": "Estamos divorciados e o nosso filho vive em residência alternada. Quem o pode incluir como dependente na declaração de IRS?",
+      "expected": [
+        "piv_26657",
+        "piv_23269",
+        "piv_15186",
+        "piv_15164",
+        "piv_14017",
+        "piv_15811",
+        "piv_25566"
+      ]
+    },
+    {
+      "id": "q34",
+      "article": "13",
+      "question": "O meu filho tem 30 anos e não consegue trabalhar por causa de uma doença. Posso continuar a pô-lo como dependente?",
+      "expected": [
+        "piv_27691",
+        "piv_27982",
+        "piv_22005",
+        "piv_26756",
+        "piv_13428"
+      ]
+    },
+    {
+      "id": "q35",
+      "article": "71",
+      "question": "Vendi um apartamento que reabilitei num prédio dentro de uma área de reabilitação urbana. O ganho tem uma taxa de imposto mais baixa?",
+      "expected": [
+        "piv_30890",
+        "piv_29661",
+        "piv_30028",
+        "piv_28189",
+        "piv_25584"
+      ]
+    },
+    {
+      "id": "q36",
+      "article": "16",
+      "question": "Sou funcionária da Comissão Europeia, fui colocada em Portugal e vendi uma casa que tinha na Bélgica. Como declaro essa venda?",
+      "expected": [
+        "piv_25152"
+      ]
+    },
+    {
+      "id": "q37",
+      "article": "78-D",
+      "question": "A minha filha estuda numa universidade longe de casa e paga um quarto numa residência. Posso deduzir esse alojamento como despesa de educação?",
+      "expected": [
+        "piv_30032",
+        "piv_26060",
+        "piv_26278",
+        "piv_25466",
+        "piv_14390",
+        "piv_13824",
+        "piv_26640",
+        "piv_14331"
+      ]
+    },
+    {
+      "id": "q38",
+      "article": "78-D",
+      "question": "O meu filho está a tirar o curso no estrangeiro. As propinas pagas lá fora contam para a dedução de despesas de educação?",
+      "expected": [
+        "piv_25652",
+        "piv_15774",
+        "piv_14425"
+      ]
+    },
+    {
+      "id": "q39",
+      "article": "31",
+      "question": "Comecei a passar recibos verdes mas continuo a trabalhar por conta de outrem. A redução do rendimento tributável dos primeiros anos de atividade pode ficar suspensa até eu deixar o emprego?",
+      "expected": [
+        "piv_29288"
+      ]
+    },
+    {
+      "id": "q40",
+      "article": "12-A",
+      "question": "Emigrei há oito anos e vou voltar para Portugal para trabalhar. Que condições tenho de cumprir para só pagar IRS sobre metade do salário?",
+      "expected": [
+        "piv_30273",
+        "piv_29960",
+        "piv_29813",
+        "piv_29769",
+        "piv_29080",
+        "piv_28751",
+        "piv_27333",
+        "piv_14984"
+      ]
+    },
+    {
+      "id": "q41",
+      "article": "115",
+      "question": "A empresa vai pagar-me um prémio de produtividade este ano. Esse prémio fica isento de IRS?",
+      "expected": [
+        "piv_30349",
+        "piv_30103",
+        "piv_28318",
+        "piv_28432",
+        "piv_28516"
+      ]
+    },
+    {
+      "id": "q42",
+      "article": "45",
+      "question": "Recebi um apartamento por doação da minha avó e agora quero vendê-lo. Que valor de compra uso para calcular a mais-valia?",
+      "expected": [
+        "piv_28615",
+        "piv_23932",
+        "piv_25330"
+      ]
+    },
+    {
+      "id": "q43",
+      "article": "11",
+      "question": "Recebo uma pensão de alimentos fixada pelo tribunal. Tenho de declarar esse dinheiro no IRS?",
+      "expected": [
+        "piv_30289"
+      ]
+    },
+    {
+      "id": "q44",
+      "article": "101",
+      "question": "Passo recibos verdes como consultor de gestão de empresas. Que taxa de retenção na fonte se aplica às minhas faturas?",
+      "expected": [
+        "piv_26181"
+      ]
+    },
+    {
+      "id": "q45",
+      "article": "55",
+      "question": "Tive prejuízo na venda de uma casa num ano e lucro na venda de ações no ano seguinte. Posso abater o prejuízo ao lucro?",
+      "expected": [
+        "piv_27437"
+      ]
+    },
+    {
+      "id": "q46",
+      "article": "78-C",
+      "question": "Faço sessões de ioga e drenagem linfática por indicação do médico. Posso declarar estas despesas como despesas de saúde?",
+      "expected": [
+        "piv_29057"
+      ]
+    },
+    {
+      "id": "q47",
+      "article": "37",
+      "question": "Trabalho para uma agência das Nações Unidas. O meu salário paga IRS em Portugal?",
+      "expected": [
+        "piv_28585",
+        "piv_27744",
+        "piv_28957"
+      ]
+    },
+    {
+      "id": "q48",
+      "article": "84",
+      "question": "O meu pai está num lar e sou eu que pago a mensalidade. A fatura deve ser passada em meu nome ou no dele para eu poder deduzir?",
+      "expected": [
+        "piv_13418",
+        "cirs_084_01"
+      ]
+    },
+    {
+      "id": "q49",
+      "article": "83-A",
+      "question": "Pago pensão de alimentos ao meu filho, que já fez 18 anos mas continua a estudar. Ainda a posso deduzir no IRS?",
+      "expected": [
+        "piv_30151",
+        "piv_12628"
+      ]
+    },
+    {
+      "id": "q50",
+      "article": "78-E",
+      "question": "Vivo numa casa de habitação social e pago renda à câmara. Posso deduzir essas rendas no IRS?",
+      "expected": [
+        "piv_19849",
+        "piv_09958"
+      ]
+    }
+  ]
+}

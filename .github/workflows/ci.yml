@@ -1,0 +1,66 @@
+# Builds and tests on Windows with the synthetic fixture corpus and the fake embedder.
+# Never crawls, never downloads the embedding model, uses no secrets: the .NET tests that need the
+# real model are skipped because data/models does not exist here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      NG_CLI_ANALYTICS: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Docs and copy checks
+        run: node scripts/validate-docs.mjs
+
+      - name: Test the docs checks
+        run: node --test scripts/validate-docs.test.mjs
+
+      - name: Check that no model or corpus is present
+        shell: pwsh
+        run: |
+          if (Test-Path data) { Write-Error "data/ must not exist in CI (no corpus, no model)"; exit 1 }
+
+      - name: Build .NET
+        run: dotnet build LupaFiscal.slnx
+
+      - name: Test .NET (fixture corpus, fake embedder)
+        run: dotnet test LupaFiscal.slnx --no-build
+
+      - name: Install web dependencies
+        run: npm --prefix web ci
+
+      - name: Build web
+        run: npm --prefix web run build
+
+      - name: Test web
+        run: npm --prefix web test

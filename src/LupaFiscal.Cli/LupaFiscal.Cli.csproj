@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>lupa-fiscal</AssemblyName>
+    <RootNamespace>LupaFiscal.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LupaFiscal.Core\LupaFiscal.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="LupaFiscal.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LupaFiscal.Tests" />
+  </ItemGroup>
+
+</Project>

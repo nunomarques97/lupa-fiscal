@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção B: consola do contabilista · Lupa Fiscal</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --bar: #20242c;
+    --ink: #16191f;
+    --ink-2: #444b57;
+    --ink-3: #5d6574;
+    --rule: #dde0e6;
+    --accent: #8a4b00;
+    --chip: #e7e9ee;
+    --mark: #ffe08a;
+    --focus: #1f4fd1;
+    --sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Cascadia Mono", Consolas, "SFMono-Regular", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--ink); }
+  body { margin: 0; font: 14px/1.45 var(--sans); font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .bar { background: var(--bar); color: #fff; }
+  .bar-inner { max-width: 1320px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 20px; }
+  .brand { font-weight: 700; font-size: 15px; white-space: nowrap; color: #fff; text-decoration: none; }
+  form { flex: 1; display: flex; gap: 8px; min-width: 0; }
+  form label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  input[type=search] { flex: 1; min-width: 0; font: inherit; font-size: 15px; padding: 8px 12px; border: 1px solid #565d6b; border-radius: 3px; background: #fff; color: var(--ink); min-height: 38px; }
+  .go { font: 600 14px var(--sans); background: #ffd166; color: #16191f; border: 0; border-radius: 3px; padding: 0 16px; min-height: 38px; }
+  .notice { background: #fff7e0; border-bottom: 1px solid #ecd9a4; }
+  .notice p { max-width: 1320px; margin: 0 auto; padding: 6px 24px; font-size: 13px; color: #4a3b12; }
+
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 16px 24px 40px; }
+  .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .chips .label { color: var(--ink-3); font-size: 13px; margin-right: 4px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; background: var(--chip); color: var(--ink); border: 1px solid #c9cdd6; border-radius: 999px; padding: 4px 12px; min-height: 30px; }
+  .chip.on { background: var(--bar); color: #fff; border-color: var(--bar); }
+  .meta { margin-left: auto; color: var(--ink-3); font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--rule); }
+  th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); padding: 8px 10px; border-bottom: 1px solid var(--rule); background: #fafbfc; }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.num, td.proc { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  td.subj { font-weight: 600; }
+  tr.row button { font: inherit; background: none; border: 0; color: var(--ink-2); cursor: pointer; padding: 0 4px; }
+  tr.detail td { background: #fbfbfc; padding: 4px 10px 14px 52px; }
+  .passage { margin: 0; max-width: 110ch; color: var(--ink-2); }
+  mark { background: var(--mark); color: inherit; }
+  .detail a { font-weight: 600; font-size: 13px; }
+  .cards { display: none; }
+
+  @media (max-width: 720px) {
+    .bar-inner { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+    form { flex-basis: 100%; }
+    .notice p { padding: 6px 12px; }
+    .wrap { padding: 12px 12px 32px; }
+    .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .chip { white-space: nowrap; }
+    .meta { display: none; }
+    table { display: none; }
+    .cards { display: block; list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--rule); }
+    .cards li { padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+    .cards .line1 { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+    .cards .line2 { font-weight: 600; }
+    .cards .passage { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-inner">
+    <a class="brand" href="#">Lupa Fiscal</a>
+    <form role="search" onsubmit="return false">
+      <label for="q">Pergunta</label>
+      <input id="q" type="search" autocomplete="off">
+      <button class="go" type="submit">Pesquisar</button>
+    </form>
+  </div>
+</header>
+<div class="notice" role="note" data-notice><p>Não é aconselhamento fiscal. Leia sempre a informação vinculativa oficial. Projeto independente, sem ligação à Autoridade Tributária e Aduaneira.</p></div>
+
+<main class="wrap">
+  <div class="chips" data-filters>
+    <span class="label">Filtros</span>
+    <button class="chip on" type="button" aria-pressed="true">Imposto: IRS</button>
+    <button class="chip" type="button">Artigo: todos</button>
+    <button class="chip" type="button">Ano: todos</button>
+    <span class="meta" id="meta"></span>
+  </div>
+  <table>
+    <caption class="sr-only">Informações vinculativas encontradas</caption>
+    <thead><tr><th scope="col">#</th><th scope="col">Processo</th><th scope="col">Artigo</th><th scope="col">Data</th><th scope="col">Assunto</th><th scope="col">Secção</th><th scope="col"><span class="sr-only">Passagem</span></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <ol class="cards" id="cards"></ol>
+</main>
+
+<script src="mock-data.js"></script>
+<script src="mock-common.js"></script>
+<script>
+  const { h, article, dateShort, section, renderPassage } = Mock;
+  const data = window.MOCK;
+  document.getElementById('q').value = data.query;
+  document.getElementById('meta').textContent = data.results.length + ' resultados · ' + data.tookMs + ' ms';
+  const rows = document.getElementById('rows');
+  const mobile = matchMedia('(max-width: 720px)').matches;
+
+  data.results.forEach((r, i) => {
+    const open = i === 0;
+    const pdf = h('a', { href: r.sourceUrl, target: '_blank', rel: 'noopener noreferrer' }, 'PDF oficial');
+    rows.append(h('tr', { class: 'row', 'data-result': open ? '' : null },
+      h('td', { class: 'num' }, String(i + 1)),
+      h('td', { class: 'proc' }, r.processNumber),
+      h('td', {}, article(r.article)),
+      h('td', { class: 'proc' }, dateShort(r.date)),
+      h('td', { class: 'subj' }, r.subject),
+      h('td', {}, section(r.section)),
+      h('td', {}, h('button', { type: 'button', 'aria-expanded': String(open), 'aria-label': 'Mostrar passagem' }, open ? '▾' : '▸'))));
+    if (open) {
+      const p = h('p', { class: 'passage' });
+      renderPassage(p, r, 420);
+      rows.append(h('tr', { class: 'detail', 'data-result': '' }, h('td', { colspan: '7' }, p, pdf)));
+    }
+  });
+
+  const cards = document.getElementById('cards');
+  data.results.forEach((r, i) => {
+    const li = h('li', { 'data-result': '' },
+      h('div', { class: 'line1' }, (i + 1) + '. ' + r.processNumber + ' · art. ' + article(r.article) + ' · ' + dateShort(r.date)),
+      h('div', { class: 'line2' }, r.subject));
+    if (i === 0) {
+      const p = h('p', { class: 'passage' });
+      renderPassage(p, r, 200);
+      li.append(p, h('a', { href: r.sourceUrl, target: '_blank', rel: 'noopener noreferrer' }, 'PDF oficial'));
+    }
+    cards.append(li);
+  });
+</script>
+</body>
+</html>

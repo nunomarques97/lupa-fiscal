@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direção C: pergunta e evidência · Lupa Fiscal</title>
+<style>
+  :root {
+    --bg: #fdfdfb;
+    --ink: #1a1c1e;
+    --ink-2: #4b5057;
+    --ink-3: #646a72;
+    --rule: #e3e4e0;
+    --accent: #5b3a6e;
+    --mark: #ece0f4;
+    --focus: #1f4fd1;
+    --sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); color: var(--ink); }
+  body { margin: 0; font: 16px/1.55 var(--sans); }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .col { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+  header .col { display: flex; align-items: center; gap: 16px; padding-top: 16px; padding-bottom: 16px; }
+  .brand { font: 600 16px var(--sans); color: var(--ink); text-decoration: none; white-space: nowrap; }
+  form { flex: 1; display: flex; min-width: 0; border: 1px solid #9aa0a6; border-radius: 999px; background: #fff; padding: 2px 2px 2px 16px; }
+  form label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  input[type=search] { flex: 1; min-width: 0; font: inherit; border: 0; background: none; color: var(--ink); padding: 6px 0; }
+  .go { font: 600 14px var(--sans); color: #fff; background: var(--ink); border: 0; border-radius: 999px; padding: 0 16px; min-height: 34px; }
+  .notice { text-align: center; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+
+  h1 { font: 400 36px/1.2 var(--serif); margin: 40px 0 12px; letter-spacing: -.01em; }
+  .scope { color: var(--ink-3); font-size: 15px; margin: 0 0 40px; }
+  .scope button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { margin: 0 0 44px; }
+  .passage { font: 21px/1.6 var(--serif); margin: 0 0 10px; }
+  mark { background: var(--mark); color: inherit; padding: 0 2px; }
+  .src { font-size: 14px; color: var(--ink-3); }
+  .src a { color: var(--ink-3); }
+
+  @media (max-width: 720px) {
+    .col { padding: 0 16px; }
+    header .col { flex-wrap: wrap; gap: 8px; }
+    form { flex-basis: 100%; }
+    h1 { font-size: 26px; margin-top: 20px; }
+    .scope { margin-bottom: 24px; }
+    .passage { font-size: 18px; }
+    li { margin-bottom: 32px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="col">
+    <a class="brand" href="#">Lupa Fiscal</a>
+    <form role="search" onsubmit="return false">
+      <label for="q">A sua pergunta</label>
+      <input id="q" type="search" autocomplete="off">
+      <button class="go" type="submit">Pesquisar</button>
+    </form>
+  </div>
+</header>
+<main class="col">
+  <p class="notice" role="note" data-notice>Não é aconselhamento fiscal. Leia sempre a informação vinculativa oficial.</p>
+  <h1 id="question"></h1>
+  <p class="scope" data-filters>Em IRS, todos os artigos, todos os anos. <button type="button">Alterar filtros</button></p>
+  <ol id="results"></ol>
+  <p class="src">Projeto independente, sem ligação à Autoridade Tributária e Aduaneira.</p>
+</main>
+<script src="mock-data.js"></script>
+<script src="mock-common.js"></script>
+<script>
+  const { h, article, dateLong, renderPassage } = Mock;
+  const data = window.MOCK;
+  const mobile = matchMedia('(max-width: 720px)').matches;
+  document.getElementById('q').value = data.query;
+  document.getElementById('question').textContent = data.query;
+  const list = document.getElementById('results');
+  for (const r of data.results) {
+    const p = h('blockquote', { class: 'passage' });
+    renderPassage(p, r, mobile ? 220 : 300);
+    list.append(h('li', { 'data-result': '' }, p,
+      h('div', { class: 'src' }, 'Processo ' + r.processNumber + ', artigo ' + article(r.article) + ' do ' + r.tax + ', ' + dateLong(r.date) + '. ',
+        h('a', { href: r.sourceUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Documento oficial'))));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "lupa-fiscal-tooling",
+  "private": true,
+  "description": "Browser tooling for Lupa Fiscal (design captures and UI evidence). Uses the Chromium already installed by Playwright; no browser download.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "ui:directions": "node scripts/capture-directions.mjs",
+    "ui:evidence": "node scripts/capture-evidence.mjs",
+    "ui:evidence:publish": "node scripts/capture-evidence.mjs --publish"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}

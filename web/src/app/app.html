@@ -1,0 +1,129 @@
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" routerLink="/">Lupa Fiscal</a>
+    <span class="tagline">Pesquisa em linguagem simples nas informações vinculativas publicadas</span>
+  </div>
+</header>
+<div class="notice" role="note" data-notice>
+  <p class="notice-inner"><strong>Não é aconselhamento fiscal.</strong> Leia sempre a informação vinculativa oficial. <span class="indep">Projeto independente, sem ligação à Autoridade Tributária e Aduaneira.</span></p>
+</div>
+
+<div class="page">
+  <aside class="rail" aria-labelledby="filters-title" data-filters>
+    <h2 id="filters-title">Filtros</h2>
+    <app-filter-fields idPrefix="d" [facets]="facets()" [value]="filters()" (changed)="onFilterChange($event)" />
+    <button class="clear" type="button" (click)="clearFilters()">Limpar filtros</button>
+  </aside>
+
+  <main>
+    <form class="search" role="search" novalidate (submit)="submit($event)">
+      <label for="q">A sua pergunta</label>
+      <div class="search-row">
+        <input
+          #queryInput
+          id="q"
+          type="search"
+          name="q"
+          autocomplete="off"
+          [attr.maxlength]="maxQueryLength"
+          [value]="query()"
+          [attr.aria-invalid]="invalid() ? 'true' : null"
+          [attr.aria-describedby]="invalid() ? 'q-error' : null"
+          (input)="onInput($event)"
+        />
+        <button class="btn" type="submit">Pesquisar</button>
+      </div>
+      @if (invalid()) {
+        <p class="field-error" id="q-error">{{ validationMessage }}</p>
+      }
+    </form>
+
+    <div class="filters-bar" data-filters>
+      <button #sheetToggle class="btn-quiet filters-toggle" type="button" aria-haspopup="dialog" (click)="openSheet()">
+        Filtros@if (activeFilterCount()) { ({{ activeFilterCount() }})}
+      </button>
+      <span class="active-filters">{{ activeFilterSummary() }}</span>
+    </div>
+
+    <div class="sr-only" aria-live="polite" data-live>{{ store.announcement() }}</div>
+
+    <section class="region" aria-label="Resultados" [attr.aria-busy]="store.busy() ? 'true' : null" data-region>
+      @if (state().kind === 'initial') {
+        <div class="state">
+          <h2>Escreva a sua pergunta como a faria a um contabilista</h2>
+          <p>Mostramos os excertos das informações vinculativas do IRS mais próximos da pergunta, cada um com o número do processo e a ligação para o documento oficial.</p>
+          <ul class="examples">
+            @for (example of examples; track example) {
+              <li><a routerLink="/" [queryParams]="{ q: example }" (click)="exampleClicked()">{{ example }}</a></li>
+            }
+          </ul>
+        </div>
+      } @else {
+        <div class="summary">
+          <span class="summary-text" #summary tabindex="-1" data-summary>{{ summaryText() }}</span>
+          @if (tookText()) {
+            <span class="took">{{ tookText() }}</span>
+          }
+        </div>
+      }
+
+      @if (state().kind === 'loading' && !retrying()) {
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="skeleton" aria-hidden="true" data-skeleton>
+            <div><div class="bar" style="width: 60%"></div><div class="bar" style="width: 80%"></div></div>
+            <div>
+              <div class="bar" style="width: 45%"></div>
+              <div class="bar"></div>
+              <div class="bar"></div>
+              <div class="bar" style="width: 70%"></div>
+            </div>
+          </div>
+        }
+      }
+
+      @if (state(); as current) {
+        @if (current.kind === 'results') {
+          <ol class="results">
+            @for (result of current.response.results; track result; let i = $index) {
+              <li app-result-item [result]="result" [rank]="i + 1" [excerptChars]="narrow() ? 240 : 360"></li>
+            }
+          </ol>
+        }
+      }
+
+      @if (state().kind === 'empty') {
+        <div class="state" data-empty>
+          <h2>Nenhuma informação vinculativa encontrada</h2>
+          <p>Não há resultados para esta pergunta com os filtros escolhidos. Retire um filtro ou escreva a pergunta com outras palavras.</p>
+          <button class="btn-quiet" type="button" (click)="clearFiltersFromEmpty()">Limpar filtros</button>
+        </div>
+      }
+
+      @if (showError()) {
+        <div class="state error" data-error>
+          <h2>Não foi possível pesquisar</h2>
+          <p>O serviço de pesquisa não respondeu. A sua pergunta e os filtros mantêm-se.</p>
+          <button
+            class="btn-quiet"
+            type="button"
+            [attr.aria-disabled]="retrying() ? 'true' : null"
+            (click)="retrying() || retry()"
+          >{{ retrying() ? 'A tentar de novo…' : 'Tentar de novo' }}</button>
+        </div>
+      }
+    </section>
+  </main>
+</div>
+
+<footer>
+  <p>Lupa Fiscal é um projeto independente, sem ligação à Autoridade Tributária e Aduaneira. Os excertos são citados das informações vinculativas publicadas; a ligação abre o documento oficial.</p>
+</footer>
+
+<dialog #sheet class="sheet" aria-labelledby="sheet-title" (close)="sheetClosed()" (click)="sheetClicked($event)">
+  <h2 id="sheet-title">Filtros</h2>
+  <app-filter-fields idPrefix="m" [facets]="facets()" [value]="draft()" (changed)="draft.set($event)" />
+  <div class="sheet-actions">
+    <button class="btn-quiet" type="button" (click)="draft.set({ tax: '', article: '', year: '' })">Limpar</button>
+    <button class="btn" type="button" (click)="applySheet()">Aplicar filtros</button>
+  </div>
+</dialog>

@@ -1,24 +1,52 @@
 ---
-status: bootstrap
-sponsor_action: none
-kill_review: after v0.1 eval (recall@10 below 70 % after two iterations stops the project as a documented study)
-success_metric: recall@10 >= 70 % on the 50-question eval set, search under 1 s locally
+status: v0.1 done (local only, CIRS)
+sponsor_action: review the draft copy (README and UI text), then decide whether to make the repository public (Sponsor gate)
+kill_review: passed 2026-10-02 (hybrid recall@10 0.90 on the 50-question eval, target 0.70; below 0.70 after two iterations would have stopped the project as a documented study)
+success_metric: recall@10 >= 70 % on the 50-question eval set and search under 1 s locally; met with hybrid recall@10 0.90 (MRR@10 0.631) and p95 40 ms
 ---
 
 # State
 
 ## Current
-Project bootstrapped. v0.1 implementation not started.
+v0.1 is complete and runs locally: 1189 CIRS rulings indexed as 5938 passages, hybrid recall@10 0.900 and MRR@10 0.631 (keyword only 0.800 and 0.578), search p50 32 ms, p95 40 ms, max 53 ms. The repository stays private until the Sponsor decides otherwise.
+
+- 2026-10-02: Gate 0 passed. The CIRS listing (1189 rulings) and the ruling PDFs are publicly reachable on info.portaldasfinancas.gov.pt. robots.txt returns 404 (no restrictions under RFC 9309). The site terms allow reproduction with the source cited and for non-commercial use, and do not forbid automated download. Evidence: [docs/research/gate0.md](research/gate0.md), probe `node scripts/gate0-probe.mjs` (exit 0, 3 requests).
+- 2026-10-02: CIRS corpus crawled and extracted. `corpus-status --tax CIRS` (exit 0): listed 1189, pending 0, downloaded 1189, extracted 1189, scanned-skipped 0, failed 0. Listing fetched 2026-10-02 13:52Z; the full crawl took 21 minutes (1189 requests at 1 per second, no 429 or 5xx responses). 2986 pages, about 90 MB of PDFs and 11 MB of text in `data/corpus/cirs/` (not committed). Every ruling has a process number (72 taken from the PDF text because the listing has none) and 1145 of 1189 have a decision date parsed from the text. 83 rulings concern another diploma (EBF, budget laws) and keep it in their `diploma` field.
+- Scanned-PDF rule: a PDF whose text layer holds fewer than 200 letters or digits is listed in `data/corpus/cirs/scanned-skipped.md` and not indexed (no OCR in v0.1). The smallest CIRS ruling has 672, so none was skipped.
+- 2026-10-02: CIRS index built in `data/lupa-fiscal.db` (38 MB, not committed). `index-status` (exit 0): 1189 extracted rulings, 1189 indexed, 0 missing, 0 outdated, 5938 chunks, 5938 with vectors. The first build took 283 s on CPU; running `index` again embeds nothing (1189 unchanged, same 5938 chunks). Chunks by section: header 1187, request 1134, facts 327, legal-framework 2676, conclusion 161, content 453 (rulings without headings); average 307 model tokens, maximum 512. `search "Posso deduzir as despesas de educação dos meus filhos no IRS?"` returns 10 education and dependants rulings (articles 13, 78-D, 83-A) in 154 ms, after 2.6 s to verify and load the model and vectors.
+- Embedding model: `intfloat/multilingual-e5-small` (MIT licence), fp32 `onnx/model.onnx` with `onnx/sentencepiece.bpe.model` and `onnx/tokenizer.json`, pinned at revision `614241f622f53c4eeff9890bdc4f31cfecc418b3`. SHA-256: model.onnx `ca456c06b3a9505ddfd9131408916dd79290368331e7d76bb621f1cba6bc8665` (470,268,510 bytes), sentencepiece.bpe.model `cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865`, tokenizer.json `0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39`. Downloaded without an account into `data/models/multilingual-e5-small/` (not committed); every file is checked against its SHA-256 before use.
+- 2026-10-02: retrieval eval. 50 plain-Portuguese questions over 29 CIRS articles, each with the rulings that answer it (197 in total), frozen before measuring: `eval/questions.json`, method and coverage in `eval/README.md`. Results at ruling level (`eval`, exit 0 with `--min-recall 0.70`):
+
+  | Mode | recall@10 | MRR@10 |
+  |---|---|---|
+  | keyword only (BM25) | 0.800 | 0.578 |
+  | vector only | 0.860 | 0.613 |
+  | hybrid (RRF) | 0.900 | 0.631 |
+
+  Hybrid answers 45 of 50 questions in the top 10; the 5 misses are listed in [docs/eval/report.md](eval/report.md). The baseline parameters already meet the 0.70 target, so no tuning iteration was run.
+- 2026-10-02: latency (`bench`, 50 hybrid queries after one warm-up, query embedding included, CPU, recorded with `--record`): p50 32 ms, p95 40 ms, max 53 ms, against the 1 s limit. Loading the model and vectors once takes about 1.9 s.
+- 2026-10-02: local API (`dotnet run --project src/LupaFiscal.Api`) on the real CIRS index. It binds to 127.0.0.1:4401 and [::1]:4401 only (netstat), also when started with `--urls http://0.0.0.0:4402`, which Kestrel overrides. Startup loads the model, 1189 rulings and 5938 chunks. Timed request at 2026-10-02T15:12:50Z: `curl -w %{time_total} "http://localhost:4401/api/search?q=Posso deduzir as despesas de educação dos meus filhos no IRS?"` returned 200 with 10 results in 0.110 s end to end (`tookMs` 85.1, first query after startup); the same request again took 0.040 s (`tookMs` 37). Limit 1 s.
+- 2026-10-02: design. Three directions rendered with real passages from the index (`docs/ui/`, `npm run ui:directions`): A citation register, B accountant console, C question and evidence. A confirmed, B and C rejected with the reasons in [DESIGN.md](../DESIGN.md).
+- 2026-10-02: Angular UI (`web/`) built on DESIGN.md and served by the API on http://localhost:4401. `npm run ui:evidence:publish` drove the real UI on the real index with the installed Playwright Chromium and saved 15 screenshots at 1440 and 390 px in [docs/evidence/](evidence/): initial, validation, loading, results, filters (plus the mobile filter sheet), empty and error. It also asserts no horizontal overflow, keyboard-only use, URL restore, that a late earlier response (success or failure) never replaces a newer one, and retry of the last search.
+- 2026-10-02: open-source packaging. README (screenshots, build and run, model and third-party licences), LICENSE (MIT), CONTRIBUTING, [WALKTHROUGH](WALKTHROUGH.md) and CI (`.github/workflows/ci.yml`: Windows, .NET build and tests on the synthetic corpus with the fake embedder, web build and tests, docs checks; no crawl, no model download, no secrets). `node scripts/validate-docs.mjs` checks this file's front-matter, em-dashes in the copy, the WALKTHROUGH length, README images, the licence and credential-like file names. Local runs: `dotnet test` 307 passed, `npm --prefix web test` 29 passed, docs checks 9 passed. CI has not run yet: nothing has been pushed.
 
 ## Next
-1. Gate 0: confirm the public rulings index and PDFs are reachable and that robots.txt and the site terms allow automated download for this purpose.
-2. v0.1 (local only): crawler (CIRS first), extraction, chunking, local embeddings, hybrid search, API, Angular UI, eval.
+1. Sponsor: review the draft copy in README.md and the UI, then decide whether to make the repository public. CI runs on the first push.
+2. v0.2: crawl and index every tax (each tax's listing endpoint to be confirmed as for CIRS), then answer synthesis with strict citations. Revisit the in-memory vector scan when the corpus grows.
+3. Before public hosting (v1): confirm that showing passages publicly stays within the site terms (source cited, non-commercial). See docs/research/gate0.md.
 
 ## Roadmap
-- v0.1: local semantic search over CIRS rulings, no generated answers.
-- v0.2: every tax, plus answer synthesis with strict citations.
+- v0.1 (done 2026-10-02): local semantic search over CIRS rulings, no generated answers.
+- v0.2: every tax, plus answer synthesis with strict citations: every statement linked to the ruling passage it comes from, nothing without a source. Any paid model is a Sponsor gate.
 - v1: public hosting (Sponsor gate).
 
 ## Decisions
 - 2026-10-02: no Linear; priorities and roadmap live here.
 - 2026-10-02: repository private; making it public is a Sponsor decision.
+- 2026-10-02: Gate 0 passed; crawl only https://info.portaldasfinancas.gov.pt, at most 1 request per second, using the listing endpoint and field mapping in docs/research/gate0.md.
+- 2026-10-02: corpus cache layout `data/corpus/<tax>/` with `manifest.json` (metadata and state per ruling), `listing.json`, `pdf/<id>.pdf`, `text/<id>.txt`, `scanned-skipped.md` and `crawl.log`. Ruling ids are sanitised PDF file names (`[a-z0-9_-]`). A run stops after 3 downloads in a row fail after their retries, leaving those rulings pending.
+- 2026-10-02: index design. Each ruling body is cleaned of page furniture (page banners, "1Processo: N" footers) and split into sections: header (up to "Conteúdo:"), request, facts, legal-framework (INFORMAÇÃO, PARECER, ENQUADRAMENTO, ANÁLISE), conclusion, or content when no heading is found. Chunks never cross a section and hold at most 512 model tokens including the "passage: " prefix and special tokens. Overlap: the next chunk repeats the last whole sentences of the previous one, up to 64 tokens; sentences longer than 64 tokens are cut at word boundaries. Chunk offsets refer to the cleaned body stored in `rulings.body`.
+- 2026-10-02: search design. Keyword list: FTS5 (unicode61, diacritics removed) BM25 over chunk text; the query is reduced to words, Portuguese stop words dropped, each word quoted and joined with OR, so user text is never FTS5 syntax. Vector list: brute-force cosine over all chunk vectors in memory. Each list takes 100 candidates; reciprocal rank fusion with k = 60 at ruling level, one passage per ruling (its best fused chunk). Filters (tax, article, year) apply to both lists; the year is the publication year from the listing (always present; the decision date is missing for 44 rulings). A ruling is re-embedded only when its cleaned text, the chunking settings or the model change, or a chunk lacks a vector.
+- 2026-10-02: API contract. `GET /api/search` validates q (required, not blank, at most 500 characters), year (digits, 1900 to 2100) and limit (digits, 1 to 50, default 10, never clamped); each parameter at most once; an empty year or limit means absent, blank tax or article means no filter, an unknown tax or article returns 200 with no results. Errors are problem-details (400 validation, 404 for unknown `/api` paths, 500 with no exception detail). Results are plain text with highlights as UTF-16 `{start, length}` offsets into the passage; a result whose source URL is not https on the official host is dropped. Only Host headers localhost, 127.0.0.1 and [::1] are accepted. Facets count rulings with chunks per tax, article (numeric order) and publication year (newest first).
+- 2026-10-02: eval metrics. recall@10 counts a question as answered when any of its expected rulings (alternative answers) is in the first 10 distinct rulings; MRR@10 uses the first one. Passages of one ruling count once. The question set is frozen by a hash in `docs/eval/history.json`; `eval` refuses to record an iteration against an edited set.
+- 2026-10-02: README and CONTRIBUTING are in English for an open-source audience; the UI stays in European Portuguese. Both are drafts for the Sponsor: no em-dashes, nothing about how the project was built, no suggestion of a link with the tax authority beyond the independence statement. CI is a single Windows job with read-only permissions and no secrets.
