@@ -1,0 +1,43 @@
+# Credentials (never commit)
+.env
+.env.*
+*.key
+*.pem
+*.jks
+*.keystore
+google-services.json
+credentials.json
+*token*
+*secret*
+
+# FORJA run state (private logs)
+.forja/
+
+# Local data: downloaded corpus, index database, model files
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.onnx
+*.onnx_data
+*.safetensors
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+playwright-report/
+test-results/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.idea/
