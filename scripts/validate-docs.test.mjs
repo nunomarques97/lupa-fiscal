@@ -91,6 +91,14 @@ test('README image problems fail: missing file, remote image, no image', () => {
   assert.deepEqual(imageReferences('![x](<a b.png> "t")\n[ref]: docs/y.png\n'), ['a b.png', 'docs/y.png']);
 });
 
+test('the repository own CI badge is the only allowed remote image', () => {
+  const root = validRepo();
+  write(root, 'README.md', '![a](docs/evidence/results-1440.png)\n[![CI](https://github.com/nunomarques97/lupa-fiscal/actions/workflows/ci.yml/badge.svg?branch=main)](x)\n');
+  assert.deepEqual(validate(root), []);
+  write(root, 'README.md', '![a](docs/evidence/results-1440.png)\n![b](https://github.com/other/repo/actions/workflows/ci.yml/badge.svg)\n');
+  assert.ok(validate(root).some((p) => p.includes('is remote')));
+});
+
 test('a LICENSE that is not MIT fails', () => {
   const root = validRepo();
   write(root, 'LICENSE', repoLicense.replace('MERCHANTABILITY', 'MERCHANTABILITY, TITLE'));

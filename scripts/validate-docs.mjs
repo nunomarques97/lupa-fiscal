@@ -3,7 +3,8 @@
 // - docs/STATE.md front-matter lacks status, sponsor_action, kill_review or success_metric (or one is empty);
 // - an em-dash appears in README.md, CONTRIBUTING.md, docs/WALKTHROUGH.md or any file under web/src;
 // - docs/WALKTHROUGH.md exceeds 1100 words;
-// - README.md has no image, references a local image that does not exist, or references a remote image;
+// - README.md has no image, references a local image that does not exist, or references a remote image
+//   (the one exception is this repository's own GitHub Actions status badge);
 // - LICENSE is not the MIT licence text with a copyright line;
 // - a tracked (or untracked, not ignored) file name contains "token" or "secret".
 // Usage: node scripts/validate-docs.mjs [--root DIR]   (default: the repository root)
@@ -17,6 +18,7 @@ export const MAX_WALKTHROUGH_WORDS = 1100;
 const EM_DASH = '—';
 const COPY_FILES = ['README.md', 'CONTRIBUTING.md', 'docs/WALKTHROUGH.md'];
 const COPY_DIRS = ['web/src'];
+export const ALLOWED_REMOTE_IMAGE = /^https:\/\/github\.com\/nunomarques97\/lupa-fiscal\/actions\/workflows\/[\w.-]+\.ya?ml\/badge\.svg(\?branch=[\w.-]+)?$/;
 
 export function validate(root) {
   const problems = [];
@@ -117,6 +119,7 @@ function checkReadmeImages(root, problems) {
   const refs = imageReferences(readFileSync(path, 'utf8'));
   if (refs.length === 0) problems.push('README.md: no image (screenshots from docs/evidence/ expected)');
   for (const ref of refs) {
+    if (ALLOWED_REMOTE_IMAGE.test(ref)) continue;
     if (/^[a-z][a-z0-9+.-]*:/i.test(ref) || ref.startsWith('//')) {
       problems.push(`README.md: image ${ref} is remote; reference a file in the repository`);
       continue;
