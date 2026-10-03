@@ -53,6 +53,9 @@ public sealed class QuestionRecord
 {
     public string Id { get; set; } = "";
 
+    /// <summary>Tax code of the question, absent in a single-tax set.</summary>
+    public string? Tax { get; set; }
+
     public string Article { get; set; } = "";
 
     public string Question { get; set; } = "";
@@ -143,22 +146,37 @@ public sealed class EvalHistory
     public void Save(string path) => WriteAtomic(path, JsonSerializer.SerializeToUtf8Bytes(this, JsonOptions));
 
     /// <summary>
-    /// Records an eval run. The question set is frozen once an iteration exists: a different hash
+    /// Throws when a question set was frozen here (by <see cref="Freeze"/> or a recorded iteration) and
+    /// <paramref name="set"/> differs from it, so no measurement is taken against edited questions or answers.
+    /// </summary>
+    public void EnsureFrozen(EvalQuestionSet set)
+    {
+        if (QuestionsHash is { } frozen && frozen != set.Hash)
+        {
+            throw new InvalidDataException(
+                $"The question set changed after it was frozen with {Iterations.Count} recorded iteration(s) (hash {set.Hash[..12]}, recorded {frozen[..12]}). " +
+                "Questions and expected rulings are frozen before tuning; restore the frozen file.");
+        }
+    }
+
+    /// <summary>Pins the question set by its hash before any measurement. Freezing the same set again changes nothing.</summary>
+    public void Freeze(EvalQuestionSet set, string questionsPath)
+    {
+        EnsureFrozen(set);
+        QuestionsPath = questionsPath;
+        QuestionsHash = set.Hash;
+        QuestionCount = set.Questions.Count;
+        ExpectedCount = set.ExpectedCount;
+    }
+
+    /// <summary>
+    /// Records an eval run. The question set is frozen once it has a hash here: a different hash
     /// throws, so tuning can never be measured against edited questions or answers.
     /// </summary>
     public EvalIteration Record(EvalQuestionSet set, string questionsPath, string config, IReadOnlyList<ModeResult> results,
         string? label, string? note, DateTimeOffset now)
     {
-        if (Iterations.Count > 0 && QuestionsHash is { } frozen && frozen != set.Hash)
-        {
-            throw new InvalidDataException(
-                $"The question set changed after {Iterations.Count} recorded iteration(s) (hash {set.Hash[..12]}, recorded {frozen[..12]}). " +
-                "Questions and expected rulings are frozen before tuning; restore the frozen file.");
-        }
-        QuestionsPath = questionsPath;
-        QuestionsHash = set.Hash;
-        QuestionCount = set.Questions.Count;
-        ExpectedCount = set.ExpectedCount;
+        Freeze(set, questionsPath);
 
         var iteration = Iterations.FirstOrDefault(i => i.Config == config);
         if (iteration is null)
@@ -180,6 +198,7 @@ public sealed class EvalHistory
         Latest = set.Questions.Select((q, i) => new QuestionRecord
         {
             Id = q.Id,
+            Tax = q.Tax.Length > 0 ? q.Tax : null,
             Article = q.Article,
             Question = q.Question,
             Expected = [.. q.Expected],

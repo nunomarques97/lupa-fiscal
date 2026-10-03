@@ -89,6 +89,10 @@ public sealed class IndexCliTests : IDisposable
     [InlineData("search", "IRS", "--year", "dois mil")]
     [InlineData("search", "IRS", "--mode", "fuzzy")]
     [InlineData("search", "IRS", "--query", "IRS")]
+    [InlineData("search", "IRS", "--article", "8")]
+    [InlineData("search", "IRS", "--article", "8", "--year", "2022")]
+    [InlineData("index", "--tax", "IVA")]
+    [InlineData("index-status", "--tax", "IVA")]
     [InlineData("model", "upload")]
     [InlineData("index", "extra")]
     public async Task RejectsInvalidArguments(params string[] args)
@@ -109,7 +113,7 @@ public sealed class IndexCliTests : IDisposable
 
         var syntax = await Run("search", "\"NEAR(despesas* AND -educação\" OR text:(", "--mode", "keyword");
         var filtered = await Run("search", "rendimentos", "--tax", "CIRS", "--article", "8", "--year", "2022");
-        var empty = await Run("search", "rendimentos", "--article", "999");
+        var empty = await Run("search", "rendimentos", "--tax", "CIRS", "--article", "999");
 
         Assert.Equal(CliApp.ExitOk, syntax.Exit);
         Assert.Equal(CliApp.ExitOk, filtered.Exit);
@@ -117,5 +121,62 @@ public sealed class IndexCliTests : IDisposable
         Assert.DoesNotContain("processo 90001", filtered.Out, StringComparison.Ordinal);
         Assert.Equal(CliApp.ExitOk, empty.Exit);
         Assert.Contains("No results.", empty.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IndexWithoutTaxCoversEveryTaxAndStatusReportsEach()
+    {
+        TestCorpus.WriteTaxes(_temp.Path, TestCorpus.TwoTaxes);
+
+        var index = await Run("index");
+        var status = await Run("index-status");
+        var civa = await Run("index-status", "--tax", "CIVA");
+
+        Assert.Equal(CliApp.ExitOk, index.Exit);
+        Assert.Contains("Index: 6 ruling(s) from 7 listing(s) (1 merged); embedded 6", index.Out, StringComparison.Ordinal);
+        Assert.Equal(CliApp.ExitOk, status.Exit);
+        Assert.Contains("CIRS extracted rulings: 4", status.Out, StringComparison.Ordinal);
+        Assert.Contains("CIVA extracted rulings: 3", status.Out, StringComparison.Ordinal);
+        Assert.Contains("merged (same PDF as an earlier tax): 1", status.Out, StringComparison.Ordinal);
+        Assert.Contains("Status: complete", status.Out, StringComparison.Ordinal);
+        Assert.Equal(CliApp.ExitOk, civa.Exit);
+        Assert.DoesNotContain("CIRS extracted", civa.Out, StringComparison.Ordinal);
+
+        var again = await Run("index");
+        Assert.Contains("embedded 0 (0 chunk(s)), unchanged 6", again.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task IndexWithTaxEmbedsOnlyThatTaxAndStatusTellsTheRestIsMissing()
+    {
+        TestCorpus.WriteTaxes(_temp.Path, TestCorpus.TwoTaxes);
+
+        var civa = await Run("index", "--tax", "CIVA");
+        var all = await Run("index-status");
+
+        Assert.Equal(CliApp.ExitOk, civa.Exit);
+        Assert.Equal(CliApp.ExitOk, (await Run("index-status", "--tax", "CIVA")).Exit);
+        Assert.Equal(CliApp.ExitFailure, all.Exit);
+        Assert.Contains("missing (no chunks):    3", all.Out, StringComparison.Ordinal);
+        Assert.Contains("Status: incomplete", all.Out, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SearchScopesTheArticleToTheTaxAndShowsTheDisplayTax()
+    {
+        TestCorpus.WriteTaxes(_temp.Path, TestCorpus.TwoTaxes);
+        await Run("index");
+
+        var civa = await Run("search", "transmissão de bens rendimentos", "--tax", "CIVA", "--article", "8");
+        var merged = await Run("search", "despesas de educação", "--tax", "civa", "--article", "21");
+        var unknown = await Run("search", "despesas de educação", "--tax", "IVA");
+
+        Assert.Equal(CliApp.ExitOk, civa.Exit);
+        Assert.Contains("CIVA art. 8 |", civa.Out, StringComparison.Ordinal);
+        Assert.DoesNotContain("CIRS art. 8 |", civa.Out, StringComparison.Ordinal);
+        Assert.Contains("(1 result(s))", civa.Out, StringComparison.Ordinal);
+        Assert.Contains("CIRS art. 78-D | processo 90001", merged.Out, StringComparison.Ordinal);
+        Assert.Equal(CliApp.ExitOk, unknown.Exit);
+        Assert.Contains("No results.", unknown.Out, StringComparison.Ordinal);
     }
 }

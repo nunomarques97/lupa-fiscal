@@ -23,6 +23,70 @@ public sealed record CrawlSummary(CorpusCounts Counts, int Requests, int Downloa
 }
 
 /// <summary>
+/// Outcome of one tax in a multi-tax run. <see cref="Summary"/> is null when the tax was not
+/// crawled in this run (download budget used up, or an earlier tax stopped the run); its counts
+/// then come from the manifest on disk, or are null when the tax has never been crawled.
+/// </summary>
+public sealed record TaxCrawlResult(TaxSource Source, CrawlSummary? Summary, CorpusCounts? Counts, string? Skipped)
+{
+    public bool IsComplete => Counts is { IsComplete: true };
+}
+
+public sealed record MultiTaxCrawlSummary(IReadOnlyList<TaxCrawlResult> Taxes, int Requests, int Downloads, string? AbortReason)
+{
+    public bool Aborted => AbortReason is not null;
+
+    public bool IsComplete => !Aborted && Taxes.All(tax => tax.IsComplete);
+}
+
+/// <summary>
+/// Crawls several taxes one after another through one <see cref="PoliteHttpClient"/>, so the minimum
+/// request interval also holds between taxes. Each tax run fetches robots.txt again. The download
+/// budget applies to the whole run, and a tax that stops (site unavailable, robots.txt unreadable,
+/// no listing) stops the whole run, leaving the remaining rulings pending.
+/// </summary>
+public sealed class MultiTaxCrawler(
+    PoliteHttpClient client,
+    IReadOnlyList<CorpusStore> stores,
+    PdfTextExtractor extractor,
+    CrawlerOptions options,
+    Func<CorpusStore, TextWriter> logFor,
+    Func<DateTimeOffset>? now = null)
+{
+    public async Task<MultiTaxCrawlSummary> RunAsync(CrawlRunOptions run, CancellationToken cancellationToken)
+    {
+        var results = new List<TaxCrawlResult>(stores.Count);
+        var requestsAtStart = client.RequestCount;
+        var downloads = 0;
+        string? abortReason = null;
+        foreach (var store in stores)
+        {
+            string? skipped = null;
+            if (abortReason is not null) skipped = "not crawled: the run stopped at an earlier tax";
+            else if (run.MaxDownloads is { } max && downloads >= max) skipped = $"not crawled: download budget of {max} used";
+            if (skipped is not null)
+            {
+                logFor(store).WriteLine($"{store.Source.Code}: {skipped}.");
+                results.Add(new TaxCrawlResult(store.Source, null, CountsOnDisk(store), skipped));
+                continue;
+            }
+
+            var log = logFor(store);
+            log.WriteLine($"Crawl {store.Source.Code} into {store.TaxDirectory}.");
+            var crawler = new CorpusCrawler(client, store, extractor, options, log, now);
+            var summary = await crawler.RunAsync(run with { MaxDownloads = run.MaxDownloads - downloads }, cancellationToken);
+            downloads += summary.Downloads;
+            results.Add(new TaxCrawlResult(store.Source, summary, summary.Counts, null));
+            if (summary.Aborted) abortReason = $"{store.Source.Code}: {summary.AbortReason}";
+        }
+        return new MultiTaxCrawlSummary(results, client.RequestCount - requestsAtStart, downloads, abortReason);
+    }
+
+    private static CorpusCounts? CountsOnDisk(CorpusStore store) =>
+        store.LoadManifest() is { } manifest ? CorpusCounts.From(manifest) : null;
+}
+
+/// <summary>
 /// Crawls one tax: robots.txt, the listing, then every listed PDF that is not cached yet, and
 /// extracts each PDF right after download. State is saved to the manifest as it changes, so an
 /// interrupted run resumes where it stopped and never downloads a cached PDF again.
@@ -51,17 +115,19 @@ public sealed class CorpusCrawler(
     {
         var source = store.Source;
         var manifest = store.LoadManifest() ?? new CorpusManifest { Tax = source.Code };
+        var requestsAtStart = client.RequestCount;
 
-        var robots = await client.GetRobotsAsync(source.Origin, cancellationToken);
+        // Fetched at the start of every tax run, also when one client crawls several taxes.
+        var robots = await client.RefreshRobotsAsync(source.Origin, cancellationToken);
         if (robots.BlocksEverything)
         {
-            return Abort(manifest, "robots.txt could not be read, so nothing may be crawled");
+            return Abort(manifest, requestsAtStart, "robots.txt could not be read, so nothing may be crawled");
         }
 
         var listing = await LoadListingAsync(run, manifest, cancellationToken);
         if (listing is null)
         {
-            return Abort(manifest, "no listing available (request failed and no cached listing)");
+            return Abort(manifest, requestsAtStart, "no listing available (request failed and no cached listing)");
         }
 
         Merge(manifest, listing.Entries);
@@ -132,13 +198,13 @@ public sealed class CorpusCrawler(
         }
 
         if (abortReason is not null) log.WriteLine($"Crawl stopped: {abortReason}.");
-        return new CrawlSummary(CorpusCounts.From(manifest), client.RequestCount, downloads, abortReason);
+        return new CrawlSummary(CorpusCounts.From(manifest), client.RequestCount - requestsAtStart, downloads, abortReason);
     }
 
-    private CrawlSummary Abort(CorpusManifest manifest, string reason)
+    private CrawlSummary Abort(CorpusManifest manifest, int requestsAtStart, string reason)
     {
         log.WriteLine($"Crawl stopped: {reason}.");
-        return new CrawlSummary(CorpusCounts.From(manifest), client.RequestCount, 0, reason);
+        return new CrawlSummary(CorpusCounts.From(manifest), client.RequestCount - requestsAtStart, 0, reason);
     }
 
     private async Task<ListingParseResult?> LoadListingAsync(CrawlRunOptions run, CorpusManifest manifest,

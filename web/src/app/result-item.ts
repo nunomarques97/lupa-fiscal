@@ -1,25 +1,29 @@
 import { Component, computed, input, signal } from '@angular/core';
 
 import { SearchResult } from './api';
-import { articleLabel, dateShort, sectionLabel } from './format';
+import { articleCitation, dateShort, sectionLabel, taxLabel } from './format';
 import { passageView } from './passage';
 
 let nextId = 0;
 
 /**
- * One ranked passage with its citation: process number, article, date and section beside the quoted
+ * One ranked passage with its citation: process number, tax, article, date and section beside the quoted
  * passage on desktop, above it on mobile. Passage text and highlights are inserted as text only.
  */
 @Component({
   selector: 'li[app-result-item]',
-  host: { class: 'result', 'data-result': '', '[attr.data-ruling-id]': 'result().rulingId' },
+  host: { class: 'result', 'data-result': '', '[attr.data-ruling-id]': 'result().rulingId', '[attr.data-tax]': 'result().tax' },
   template: `
     <div class="cite">
       <span class="rank" aria-hidden="true">{{ rank() }}</span>
       <span class="proc">Processo {{ result().processNumber }}</span>
       <dl>
-        <dt>Artigo</dt>
-        <dd>{{ articleText() }}</dd>
+        <dt>Imposto</dt>
+        <dd>{{ taxText() }}</dd>
+        @if (result().article) {
+          <dt>Artigo</dt>
+          <dd>{{ articleText() }}</dd>
+        }
         @if (result().date; as date) {
           <dt>Data</dt>
           <dd><time [attr.datetime]="date">{{ dateText() }}</time></dd>
@@ -55,10 +59,8 @@ export class ResultItem {
     this.expanded() ? passageView(this.result().passage, this.result().highlights ?? [], null) : this.excerpt(),
   );
 
-  protected readonly articleText = computed(() => {
-    const { article, tax } = this.result();
-    return article ? `Art. ${articleLabel(article)} ${tax}` : tax;
-  });
+  protected readonly taxText = computed(() => taxLabel(this.result().tax));
+  protected readonly articleText = computed(() => articleCitation(this.result().article));
   protected readonly dateText = computed(() => dateShort(this.result().date ?? ''));
   protected readonly section = computed(() => sectionLabel(this.result().section));
 }

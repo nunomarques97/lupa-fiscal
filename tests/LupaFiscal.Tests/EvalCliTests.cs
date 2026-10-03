@@ -53,8 +53,8 @@ public sealed class EvalCliTests : IDisposable
         await Run("index");
         var questions = HitAndMiss();
 
-        var passing = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5");
-        var failing = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.6");
+        var passing = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5", "--record");
+        var failing = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.6", "--record");
 
         Assert.Equal(CliApp.ExitOk, passing.Exit);
         Assert.Contains("hybrid   recall@10 0.500  MRR@10 0.500", passing.Out, StringComparison.Ordinal);
@@ -93,18 +93,24 @@ public sealed class EvalCliTests : IDisposable
         Assert.False(File.Exists(ReportPath));
 
         var frozen = HitAndMiss();
-        Assert.Equal(CliApp.ExitOk, (await Run("eval", "--questions", frozen, "--out", ReportPath)).Exit);
+        Assert.Equal(CliApp.ExitOk, (await Run("eval", "--questions", frozen, "--out", ReportPath, "--record")).Exit);
         File.WriteAllText(frozen, File.ReadAllText(frozen).Replace("piv_90004", "piv_90003", StringComparison.Ordinal));
-        var edited = await Run("eval", "--questions", frozen, "--out", ReportPath);
+        var edited = await Run("eval", "--questions", frozen, "--out", ReportPath, "--record");
+        var editedUnrecorded = await Run("eval", "--questions", frozen, "--out", ReportPath);
 
         Assert.Equal(CliApp.ExitFailure, edited.Exit);
         Assert.Contains("frozen", edited.Err, StringComparison.Ordinal);
+        Assert.Equal(CliApp.ExitFailure, editedUnrecorded.Exit);
+        Assert.Contains("frozen", editedUnrecorded.Err, StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("eval")]
     [InlineData("eval", "--questions", "q.json", "--min-recall", "1.5")]
     [InlineData("eval", "--questions", "q.json", "--max-ms", "10")]
+    [InlineData("eval", "--questions", "q.json", "--record", "--freeze")]
+    [InlineData("eval", "--questions", "q.json", "--label", "tuned")]
+    [InlineData("eval", "--questions", "q.json", "--note", "rrf k 30")]
     [InlineData("bench")]
     [InlineData("bench", "--questions", "q.json", "--max-ms", "0")]
     [InlineData("bench", "--questions", "q.json", "--max-ms", "fast")]
@@ -119,7 +125,7 @@ public sealed class EvalCliTests : IDisposable
     {
         await Run("index");
         var questions = HitAndMiss();
-        await Run("eval", "--questions", questions, "--out", ReportPath);
+        await Run("eval", "--questions", questions, "--out", ReportPath, "--record");
 
         var bench = await Run("bench", "--questions", questions, "--out", ReportPath, "--max-ms", "60000", "--record");
         var tooSlow = await Run("bench", "--questions", questions, "--out", ReportPath, "--max-ms", "0.000001", "--record");
@@ -128,6 +134,7 @@ public sealed class EvalCliTests : IDisposable
         Assert.Contains("Recorded in", bench.Out, StringComparison.Ordinal);
         Assert.Matches(@"2 hybrid queries after one warm-up", bench.Out);
         Assert.Matches(@"p50 [\d.]+ ms  p95 [\d.]+ ms  max [\d.]+ ms", bench.Out);
+        Assert.Matches(@"chunk vectors: vector matrix [\d.]+ MB, process working set [\d.]+ MB", bench.Out);
         Assert.Equal(CliApp.ExitFailure, tooSlow.Exit);
         Assert.Contains("reaching the --max-ms limit", tooSlow.Err, StringComparison.Ordinal);
 
@@ -146,14 +153,14 @@ public sealed class EvalCliTests : IDisposable
     {
         await Run("index");
         var questions = HitAndMiss();
-        await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5");
+        await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5", "--record");
         var history = File.ReadAllBytes(HistoryPath);
         var report = File.ReadAllBytes(ReportPath);
         var historyTime = File.GetLastWriteTimeUtc(HistoryPath);
         var reportTime = File.GetLastWriteTimeUtc(ReportPath);
         await Task.Delay(50);
 
-        var eval = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5");
+        var eval = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5", "--record");
         var bench = await Run("bench", "--questions", questions, "--out", ReportPath, "--max-ms", "60000");
 
         Assert.Equal(CliApp.ExitOk, eval.Exit);
@@ -176,5 +183,87 @@ public sealed class EvalCliTests : IDisposable
         Assert.Equal(CliApp.ExitOk, bench.Exit);
         Assert.False(File.Exists(HistoryPath));
         Assert.False(File.Exists(ReportPath));
+    }
+
+    [Fact]
+    public async Task EvalWithoutRecordPrintsTheScoresExitsByTheMinimumRecallAndWritesNothing()
+    {
+        await Run("index");
+        var questions = HitAndMiss();
+
+        var first = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.5");
+
+        Assert.Equal(CliApp.ExitOk, first.Exit);
+        Assert.Contains("hybrid   recall@10 0.500  MRR@10 0.500", first.Out, StringComparison.Ordinal);
+        Assert.Contains("Not recorded", first.Out, StringComparison.Ordinal);
+        Assert.False(File.Exists(HistoryPath));
+        Assert.False(File.Exists(ReportPath));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(ReportPath)));
+
+        // Over a recorded history (with a different target), a plain run changes neither file, even when it fails.
+        await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.4", "--record");
+        var history = File.ReadAllBytes(HistoryPath);
+        var report = File.ReadAllBytes(ReportPath);
+        var historyTime = File.GetLastWriteTimeUtc(HistoryPath);
+        var reportTime = File.GetLastWriteTimeUtc(ReportPath);
+        await Task.Delay(50);
+
+        var failing = await Run("eval", "--questions", questions, "--out", ReportPath, "--min-recall", "0.6");
+
+        Assert.Equal(CliApp.ExitFailure, failing.Exit);
+        Assert.Contains("below --min-recall 0.600", failing.Err, StringComparison.Ordinal);
+        Assert.Equal(history, File.ReadAllBytes(HistoryPath));
+        Assert.Equal(report, File.ReadAllBytes(ReportPath));
+        Assert.Equal(historyTime, File.GetLastWriteTimeUtc(HistoryPath));
+        Assert.Equal(reportTime, File.GetLastWriteTimeUtc(ReportPath));
+        Assert.Equal(0.4, EvalHistory.Load(HistoryPath).TargetRecallAt10);
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(ReportPath)!, "*.partial"));
+    }
+
+    [Fact]
+    public async Task FreezePinsTheSetBeforeAnyMeasurementAndRefusesAnEditedSetAfterwards()
+    {
+        await Run("index");
+        var questions = HitAndMiss();
+        var unknown = Questions(("q1", "Propinas dos filhos?", ["piv_99999"]));
+
+        var refused = await Run("eval", "--questions", unknown, "--out", ReportPath, "--freeze");
+        Assert.Equal(CliApp.ExitFailure, refused.Exit);
+        Assert.False(File.Exists(HistoryPath));
+
+        var frozen = await Run("eval", "--questions", questions, "--out", ReportPath, "--freeze", "--min-recall", "0.7");
+
+        Assert.Equal(CliApp.ExitOk, frozen.Exit);
+        Assert.Contains("Nothing was measured", frozen.Out, StringComparison.Ordinal);
+        Assert.DoesNotContain("recall@10", frozen.Out, StringComparison.Ordinal);
+        var history = EvalHistory.Load(HistoryPath);
+        Assert.Equal(EvalQuestionSet.Load(questions).Hash, history.QuestionsHash);
+        Assert.Equal(2, history.QuestionCount);
+        Assert.Empty(history.Iterations);
+        Assert.Empty(history.Latest);
+        Assert.Equal(0.7, history.TargetRecallAt10);
+        Assert.Contains("No eval recorded yet", File.ReadAllText(ReportPath), StringComparison.Ordinal);
+
+        // Freezing the same set again leaves the files as they are.
+        var bytes = File.ReadAllBytes(HistoryPath);
+        Assert.Equal(CliApp.ExitOk, (await Run("eval", "--questions", questions, "--out", ReportPath, "--freeze", "--min-recall", "0.7")).Exit);
+        Assert.Equal(bytes, File.ReadAllBytes(HistoryPath));
+
+        var original = File.ReadAllText(questions);
+        File.WriteAllText(questions, original.Replace("piv_90004", "piv_90003", StringComparison.Ordinal));
+        var edited = await Run("eval", "--questions", questions, "--out", ReportPath);
+        var refrozen = await Run("eval", "--questions", questions, "--out", ReportPath, "--freeze");
+
+        Assert.Equal(CliApp.ExitFailure, edited.Exit);
+        Assert.Contains("frozen", edited.Err, StringComparison.Ordinal);
+        Assert.DoesNotContain("recall@10", edited.Out, StringComparison.Ordinal);
+        Assert.Equal(CliApp.ExitFailure, refrozen.Exit);
+        Assert.Equal(bytes, File.ReadAllBytes(HistoryPath));
+
+        File.WriteAllText(questions, original);
+        var measured = await Run("eval", "--questions", questions, "--out", ReportPath, "--record");
+        Assert.Equal(CliApp.ExitOk, measured.Exit);
+        Assert.Equal("baseline", Assert.Single(EvalHistory.Load(HistoryPath).Iterations).Label);
+        Assert.Equal(0.7, EvalHistory.Load(HistoryPath).TargetRecallAt10);
     }
 }

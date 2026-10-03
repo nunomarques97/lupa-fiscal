@@ -56,35 +56,47 @@ public sealed class SearchIndex
     private static IReadOnlyList<Highlight> ValidHighlights(SearchHit hit) =>
         hit.Highlights.Where(h => h.Start >= 0 && h.Length > 0 && h.Start + h.Length <= hit.Passage.Length).ToList();
 
-    /// <summary>Counts of rulings that have at least one chunk, per tax, article and publication year.</summary>
+    /// <summary>
+    /// Counts of rulings that have at least one chunk. Taxes and articles are counted per listing, so
+    /// they match the filters: a ruling listed by two taxes counts once in each, under the article it
+    /// has there. Years count each ruling once, by its publication year.
+    /// </summary>
     private static FacetsResponse LoadFacets(string indexPath)
     {
         using var connection = new SqliteConnection(IndexDatabase.ConnectionString(indexPath, readOnly: true));
         connection.Open();
 
-        List<(string Value, int Count)> Counts(string column)
+        List<(string Tax, string Value, int Count)> Counts(string sql)
         {
             using var command = connection.CreateCommand();
-            command.CommandText = $"""
-                SELECT CAST(r.{column} AS TEXT), COUNT(*)
-                FROM rulings r
-                WHERE r.{column} IS NOT NULL AND TRIM(CAST(r.{column} AS TEXT)) <> ''
-                  AND EXISTS (SELECT 1 FROM chunks c WHERE c.ruling_id = r.id)
-                GROUP BY r.{column}
-                """;
+            command.CommandText = sql;
             using var reader = command.ExecuteReader();
-            var counts = new List<(string, int)>();
-            while (reader.Read()) counts.Add((reader.GetString(0), reader.GetInt32(1)));
+            var counts = new List<(string, string, int)>();
+            while (reader.Read()) counts.Add((reader.GetString(0), reader.GetString(1), reader.GetInt32(2)));
             return counts;
         }
 
-        var taxes = Counts("tax")
+        const string HasChunks = "EXISTS (SELECT 1 FROM chunks c WHERE c.ruling_id = l.ruling_id)";
+        var taxes = Counts($"""
+                SELECT l.tax, l.tax, COUNT(DISTINCT l.ruling_id) FROM listings l
+                WHERE TRIM(l.tax) <> '' AND {HasChunks}
+                GROUP BY l.tax
+                """)
             .OrderBy(c => c.Value, StringComparer.Ordinal)
             .Select(c => new FacetValue(c.Value, c.Count)).ToList();
-        var articles = Counts("article")
-            .OrderBy(c => ArticleNumber(c.Value)).ThenBy(c => c.Value, StringComparer.Ordinal)
-            .Select(c => new FacetValue(c.Value, c.Count)).ToList();
-        var years = Counts("year")
+        var articles = Counts($"""
+                SELECT l.tax, l.article, COUNT(DISTINCT l.ruling_id) FROM listings l
+                WHERE TRIM(l.tax) <> '' AND TRIM(l.article) <> '' AND {HasChunks}
+                GROUP BY l.tax, l.article
+                """)
+            .OrderBy(c => c.Tax, StringComparer.Ordinal)
+            .ThenBy(c => ArticleNumber(c.Value)).ThenBy(c => c.Value, StringComparer.Ordinal)
+            .Select(c => new ArticleFacetValue(c.Tax, c.Value, c.Count)).ToList();
+        var years = Counts("""
+                SELECT '', CAST(r.year AS TEXT), COUNT(*) FROM rulings r
+                WHERE r.year IS NOT NULL AND EXISTS (SELECT 1 FROM chunks c WHERE c.ruling_id = r.id)
+                GROUP BY r.year
+                """)
             .Select(c => (Year: int.Parse(c.Value, System.Globalization.CultureInfo.InvariantCulture), c.Count))
             .Where(c => c.Year > 0)
             .OrderByDescending(c => c.Year)

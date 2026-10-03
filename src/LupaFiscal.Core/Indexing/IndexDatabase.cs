@@ -3,7 +3,11 @@ using Microsoft.Data.Sqlite;
 
 namespace LupaFiscal.Core.Indexing;
 
-/// <summary>Ruling metadata and normalised body as stored in the index.</summary>
+/// <summary>
+/// Ruling metadata and normalised body as stored in the index. Tax, article and source URL are those
+/// of its display (canonical) listing; <paramref name="PdfSha256"/> is the content identity used to
+/// merge byte-identical PDFs listed by several taxes.
+/// </summary>
 public sealed record IndexedRuling(
     string Id,
     string Tax,
@@ -15,23 +19,46 @@ public sealed record IndexedRuling(
     string ProcessNumber,
     string Subject,
     string SourceUrl,
-    string Body)
+    string Body,
+    string? PdfSha256 = null)
 {
     /// <summary>Year used by the year filter: the publication year (always present in the listing).</summary>
     public int? Year => PublishedOn?.Year;
 }
 
+/// <summary>
+/// One entry of a tax listing, resolved to the ruling it is stored as: <paramref name="Id"/> is the
+/// corpus id of the entry, <paramref name="RulingId"/> is that same id or, for a PDF already listed by
+/// an earlier tax, the id of that canonical ruling. The tax and article filters match listings.
+/// </summary>
+public sealed record IndexedListing(string Id, string RulingId, string Tax, string Article);
+
+/// <summary>Index state of one stored ruling: its display tax, chunk key, chunks and chunks with a vector.</summary>
+public sealed record RulingIndexState(string Tax, string? ChunkKey, int Chunks, int Vectors);
+
 /// <summary>A chunk ready to be written, with its embedding.</summary>
 public sealed record ChunkRow(Chunk Chunk, float[] Vector);
 
 /// <summary>
-/// The SQLite index (data/lupa-fiscal.db): rulings, their chunks with float32 vector BLOBs, and an
-/// external-content FTS5 table over the chunk text (unicode61, diacritics removed) kept in sync by
-/// triggers. Every statement is parameterised.
+/// The SQLite index (data/lupa-fiscal.db): rulings, the tax listings that resolve to them, their
+/// chunks with float32 vector BLOBs, and an external-content FTS5 table over the chunk text
+/// (unicode61, diacritics removed) kept in sync by triggers. Every statement is parameterised.
 /// </summary>
 public sealed class IndexDatabase : IDisposable
 {
-    public const int SchemaVersion = 1;
+    /// <summary>Version 2 adds listings and the PDF hash (v0.2); a version 1 index is migrated in place.</summary>
+    public const int SchemaVersion = 2;
+
+    private const string ListingsTable = """
+        CREATE TABLE IF NOT EXISTS listings (
+            id TEXT PRIMARY KEY,
+            ruling_id TEXT NOT NULL REFERENCES rulings (id) ON DELETE CASCADE,
+            tax TEXT NOT NULL,
+            article TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS listings_ruling ON listings (ruling_id);
+        CREATE INDEX IF NOT EXISTS listings_tax_article ON listings (tax, article);
+        """;
 
     private readonly SqliteConnection _connection;
 
@@ -45,7 +72,7 @@ public sealed class IndexDatabase : IDisposable
         Pooling = false,
     }.ToString();
 
-    /// <summary>Opens (creating if needed) the index for writing and ensures the schema.</summary>
+    /// <summary>Opens (creating or migrating if needed) the index for writing and ensures the schema.</summary>
     public static IndexDatabase OpenForWrite(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
@@ -79,6 +106,11 @@ public sealed class IndexDatabase : IDisposable
         Execute("PRAGMA journal_mode = WAL;");
         Execute("PRAGMA foreign_keys = ON;");
         var version = TableExists("meta") ? GetMeta("schema_version") : null;
+        if (version == "1")
+        {
+            MigrateFromVersion1();
+            version = SchemaVersion.ToString(CultureInfo.InvariantCulture);
+        }
         if (version is not null && version != SchemaVersion.ToString(CultureInfo.InvariantCulture))
         {
             throw new InvalidDataException($"Index has schema version {version}, expected {SchemaVersion}; delete the index file and run index again.");
@@ -99,7 +131,8 @@ public sealed class IndexDatabase : IDisposable
                 subject TEXT NOT NULL,
                 source_url TEXT NOT NULL,
                 body TEXT NOT NULL,
-                chunk_key TEXT
+                chunk_key TEXT,
+                pdf_sha256 TEXT
             );
             CREATE INDEX IF NOT EXISTS rulings_tax ON rulings (tax);
             CREATE TABLE IF NOT EXISTS chunks (
@@ -128,7 +161,30 @@ public sealed class IndexDatabase : IDisposable
                 INSERT INTO chunks_fts (rowid, text) VALUES (new.id, new.text);
             END;
             """);
+        Execute(ListingsTable);
         SetMeta("schema_version", SchemaVersion.ToString(CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Version 1 (v0.1: one tax, no listings) to 2 in one transaction: every ruling becomes its own
+    /// single listing. Chunks, vectors and chunk keys are untouched, so nothing is embedded again.
+    /// </summary>
+    private void MigrateFromVersion1()
+    {
+        using var transaction = BeginTransaction();
+        foreach (var sql in new[]
+                 {
+                     "ALTER TABLE rulings ADD COLUMN pdf_sha256 TEXT;",
+                     ListingsTable,
+                     "INSERT INTO listings (id, ruling_id, tax, article) SELECT id, id, tax, article FROM rulings;",
+                     "UPDATE meta SET value = '2' WHERE key = 'schema_version';",
+                 })
+        {
+            using var command = Command(sql);
+            command.Transaction = transaction;
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     public string? GetMeta(string key)
@@ -145,42 +201,73 @@ public sealed class IndexDatabase : IDisposable
         command.ExecuteNonQuery();
     }
 
-    /// <summary>State of every indexed ruling of one tax: its chunk key and whether all its chunks have a vector of the right size.</summary>
-    public Dictionary<string, (string? ChunkKey, int Chunks, int Vectors)> RulingStates(string tax, int dimensions)
+    /// <summary>State of every indexed ruling: its display tax, chunk key and whether all its chunks have a vector of the right size.</summary>
+    public Dictionary<string, RulingIndexState> RulingStates(int dimensions)
     {
         using var command = Command("""
-            SELECT r.id, r.chunk_key, COUNT(c.id), COALESCE(SUM(length(c.vector) = $bytes), 0)
+            SELECT r.id, r.tax, r.chunk_key, COUNT(c.id), COALESCE(SUM(length(c.vector) = $bytes), 0)
             FROM rulings r LEFT JOIN chunks c ON c.ruling_id = r.id
-            WHERE r.tax = $tax
             GROUP BY r.id
-            """, ("$tax", tax), ("$bytes", dimensions * sizeof(float)));
+            """, ("$bytes", dimensions * sizeof(float)));
         using var reader = command.ExecuteReader();
-        var states = new Dictionary<string, (string?, int, int)>(StringComparer.Ordinal);
+        var states = new Dictionary<string, RulingIndexState>(StringComparer.Ordinal);
         while (reader.Read())
         {
-            states[reader.GetString(0)] = (reader.IsDBNull(1) ? null : reader.GetString(1), reader.GetInt32(2), reader.GetInt32(3));
+            states[reader.GetString(0)] = new RulingIndexState(reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2),
+                reader.GetInt32(3), reader.GetInt32(4));
         }
         return states;
+    }
+
+    /// <summary>Every listing in the index, by listing id.</summary>
+    public Dictionary<string, IndexedListing> Listings()
+    {
+        using var command = Command("SELECT id, ruling_id, tax, article FROM listings");
+        using var reader = command.ExecuteReader();
+        var listings = new Dictionary<string, IndexedListing>(StringComparer.Ordinal);
+        while (reader.Read())
+        {
+            listings[reader.GetString(0)] = new IndexedListing(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3));
+        }
+        return listings;
     }
 
     public void UpsertRuling(IndexedRuling ruling, SqliteTransaction transaction)
     {
         using var command = Command("""
             INSERT INTO rulings (id, tax, diploma, article, paragraph, published_on, decision_date, year,
-                                 process_number, subject, source_url, body)
+                                 process_number, subject, source_url, body, pdf_sha256)
             VALUES ($id, $tax, $diploma, $article, $paragraph, $published, $decision, $year,
-                    $process, $subject, $url, $body)
+                    $process, $subject, $url, $body, $sha)
             ON CONFLICT (id) DO UPDATE SET
                 tax = excluded.tax, diploma = excluded.diploma, article = excluded.article,
                 paragraph = excluded.paragraph, published_on = excluded.published_on,
                 decision_date = excluded.decision_date, year = excluded.year,
                 process_number = excluded.process_number, subject = excluded.subject,
-                source_url = excluded.source_url, body = excluded.body
+                source_url = excluded.source_url, body = excluded.body, pdf_sha256 = excluded.pdf_sha256
             """,
             ("$id", ruling.Id), ("$tax", ruling.Tax), ("$diploma", ruling.Diploma), ("$article", ruling.Article),
             ("$paragraph", ruling.Paragraph), ("$published", Iso(ruling.PublishedOn)), ("$decision", Iso(ruling.DecisionDate)),
             ("$year", ruling.Year), ("$process", ruling.ProcessNumber), ("$subject", ruling.Subject),
-            ("$url", ruling.SourceUrl), ("$body", ruling.Body));
+            ("$url", ruling.SourceUrl), ("$body", ruling.Body), ("$sha", ruling.PdfSha256));
+        command.Transaction = transaction;
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Adds or repoints a listing; its ruling must already be stored.</summary>
+    public void UpsertListing(IndexedListing listing, SqliteTransaction transaction)
+    {
+        using var command = Command("""
+            INSERT INTO listings (id, ruling_id, tax, article) VALUES ($id, $ruling, $tax, $article)
+            ON CONFLICT (id) DO UPDATE SET ruling_id = excluded.ruling_id, tax = excluded.tax, article = excluded.article
+            """, ("$id", listing.Id), ("$ruling", listing.RulingId), ("$tax", listing.Tax), ("$article", listing.Article));
+        command.Transaction = transaction;
+        command.ExecuteNonQuery();
+    }
+
+    public void DeleteListing(string listingId, SqliteTransaction transaction)
+    {
+        using var command = Command("DELETE FROM listings WHERE id = $id", ("$id", listingId));
         command.Transaction = transaction;
         command.ExecuteNonQuery();
     }
@@ -225,9 +312,15 @@ public sealed class IndexDatabase : IDisposable
         key.ExecuteNonQuery();
     }
 
+    /// <summary>Removes a ruling with its chunks and every listing that resolves to it.</summary>
     public void DeleteRuling(string rulingId, SqliteTransaction transaction)
     {
-        foreach (var sql in new[] { "DELETE FROM chunks WHERE ruling_id = $id", "DELETE FROM rulings WHERE id = $id" })
+        foreach (var sql in new[]
+                 {
+                     "DELETE FROM chunks WHERE ruling_id = $id",
+                     "DELETE FROM listings WHERE ruling_id = $id",
+                     "DELETE FROM rulings WHERE id = $id",
+                 })
         {
             using var command = Command(sql, ("$id", rulingId));
             command.Transaction = transaction;

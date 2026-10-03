@@ -8,7 +8,8 @@ namespace LupaFiscal.Tests.Support;
 
 /// <summary>
 /// The API in memory (TestServer) over a fixture index built with the fake embedder in a temporary
-/// data directory. No model, no network and no port are used.
+/// data directory, from three tax corpora (CIRS, CIRC and the CIVA fixture with its copy of a CIRS
+/// PDF). No model, no network and no port are used.
 /// </summary>
 internal sealed class ApiTestHost : IDisposable
 {
@@ -21,7 +22,7 @@ internal sealed class ApiTestHost : IDisposable
         """);
 
     /// <summary>Another tax, and literal markup in the text, which must come back as plain text.</summary>
-    public static readonly TestCorpus.Ruling CorporateGains = new("piv_90006", "10", new DateOnly(2024, 5, 1),
+    public static readonly TestCorpus.Ruling CorporateGains = new("circ-piv_90006", "10", new DateOnly(2024, 5, 1),
         "Mais-valias de sociedades",
         """
         Conteúdo: A sociedade alienou um imóvel do ativo e pretende saber como tributar as mais-valias.
@@ -29,7 +30,15 @@ internal sealed class ApiTestHost : IDisposable
         O texto do pedido incluía <script>alert(1)</script> e o valor <b>1000</b> & mais.
         """, Tax: "CIRC");
 
-    public static IReadOnlyList<TestCorpus.Ruling> Corpus { get; } = [.. TestCorpus.All, SharesGains, CorporateGains];
+    public static IReadOnlyList<TestCorpus.Ruling> Corpus { get; } = [.. TestCorpus.All, SharesGains, CorporateGains, .. TestCorpus.Civa];
+
+    /// <summary>
+    /// The distinct indexed rulings: the CIVA copy of <see cref="TestCorpus.Education"/> is stored as
+    /// that CIRS ruling, and the scanned CIVA PDF is not indexed.
+    /// </summary>
+    public static IReadOnlySet<string> RulingIds { get; } = Corpus
+        .Where(r => r.State == Core.Corpus.RulingState.Extracted && r != TestCorpus.CivaEducationCopy)
+        .Select(r => r.Id).ToHashSet();
 
     private readonly TempDirectory _temp = new();
     private readonly WebApplicationFactory<LupaFiscal.Api.Program> _factory;
@@ -39,10 +48,10 @@ internal sealed class ApiTestHost : IDisposable
     /// <param name="webRoot">The --web-root setting; by default a directory without an app.</param>
     public ApiTestHost(Action<string>? prepareIndex = null, IEmbedder? embedder = null, string? webRoot = null)
     {
-        var store = TestCorpus.Write(_temp.Path, Corpus);
+        var stores = TestCorpus.WriteTaxes(_temp.Path, Corpus);
         using (var database = IndexDatabase.OpenForWrite(IndexPath))
         {
-            new IndexBuilder(database, new FakeEmbedder(), new ChunkingOptions(), TextWriter.Null).Build(store, CancellationToken.None);
+            new IndexBuilder(database, new FakeEmbedder(), new ChunkingOptions(), TextWriter.Null).Build(stores, CancellationToken.None);
         }
         prepareIndex?.Invoke(IndexPath);
 

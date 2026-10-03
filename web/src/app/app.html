@@ -51,7 +51,7 @@
       @if (state().kind === 'initial') {
         <div class="state">
           <h2>Escreva a sua pergunta como a faria a um contabilista</h2>
-          <p>Mostramos os excertos das informações vinculativas do IRS mais próximos da pergunta, cada um com o número do processo e a ligação para o documento oficial.</p>
+          <p>Mostramos os excertos das informações vinculativas mais próximos da pergunta, de todos os impostos ou só do que escolher nos filtros, cada um com o número do processo e a ligação para o documento oficial.</p>
           <ul class="examples">
             @for (example of examples; track example) {
               <li><a routerLink="/" [queryParams]="{ q: example }" (click)="exampleClicked()">{{ example }}</a></li>

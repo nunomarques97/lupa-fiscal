@@ -117,6 +117,46 @@ public sealed class EvalQuestionSetTests
         }
     }
 
+    [Fact]
+    public void TheTaxIsAnOptionalLabelOutsideTheHash()
+    {
+        var plain = EvalQuestionSet.Parse(Valid, "test");
+        var civa = EvalQuestionSet.Parse(Valid.Replace("\"article\": \"78-D\"", "\"tax\": \" CIVA \", \"article\": \"78-D\"", StringComparison.Ordinal), "test");
+
+        Assert.Equal("", plain.Questions[0].Tax);
+        Assert.Equal("CIVA", civa.Questions[0].Tax);
+        Assert.Equal("", civa.Questions[1].Tax);
+        // Search runs without filters, so the tax cannot change a score; the committed multi-tax set
+        // pins it to the prefix of its expected ruling ids instead (see the test below).
+        Assert.Equal(plain.Hash, civa.Hash);
+    }
+
+    [Fact]
+    public void TheCommittedMultiTaxSetCoversAtLeastFourOtherTaxesAndMatchesItsFrozenHash()
+    {
+        var root = RepositoryRoot();
+        var set = EvalQuestionSet.Load(Path.Combine(root, "eval", "questions-taxes.json"));
+
+        Assert.True(set.Questions.Count >= 20, "the multi-tax set needs at least 20 questions");
+        Assert.Equal(Enumerable.Range(1, set.Questions.Count).Select(i => $"t{i:00}"), set.Questions.Select(q => q.Id));
+        Assert.All(set.Questions, q =>
+        {
+            Assert.NotEmpty(q.Expected);
+            Assert.NotEmpty(q.Article);
+            Assert.NotEmpty(q.Tax);
+            Assert.NotEqual("CIRS", q.Tax);
+            // Ids of the rulings each question's tax lists first (the index's display ids), never a CIRS ruling.
+            Assert.All(q.Expected, id => Assert.Matches($"^{q.Tax.ToLowerInvariant()}-[a-z0-9_-]+$", id));
+            Assert.DoesNotContain('—', q.Question);
+        });
+        Assert.True(set.Questions.Select(q => q.Tax).Distinct().Count() >= 4, "questions should cover at least 4 taxes other than CIRS");
+
+        // Frozen before the first measurement: the history beside the report pins the questions and answers.
+        var history = EvalHistory.Load(Path.Combine(root, "docs", "eval", "taxes", "history.json"));
+        Assert.Equal(history.QuestionsHash, set.Hash);
+        Assert.Equal("eval/questions-taxes.json", history.QuestionsPath);
+    }
+
     private static string RepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

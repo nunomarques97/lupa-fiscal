@@ -20,7 +20,7 @@ internal static class IndexCommands
         Func<IEmbedder>? embedderFactory, CancellationToken cancellationToken)
     {
         args.EnsureOnly("tax", "data-dir");
-        var stores = Stores(args);
+        var (stores, selected) = Stores(args);
         var log = new TimestampedWriter(stdout);
 
         IEmbedder embedder;
@@ -43,33 +43,29 @@ internal static class IndexCommands
         {
             log.WriteLine($"Index {IndexPath(args)}; model {embedder.ModelId}; {Chunking.Describe()}.");
             var builder = new IndexBuilder(database, embedder, Chunking, log);
-            var complete = true;
-            foreach (var store in stores)
+            IndexBuildSummary summary;
+            try
             {
-                IndexBuildSummary summary;
-                try
-                {
-                    summary = builder.Build(store, cancellationToken);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    log.WriteLine("Index interrupted; finished batches are saved, run index again to resume.");
-                    return CliApp.ExitFailure;
-                }
-                log.WriteLine($"{store.Source.Code}: {summary.Rulings} ruling(s); embedded {summary.Embedded} " +
-                    $"({summary.ChunksWritten} chunk(s)), unchanged {summary.Unchanged}, removed {summary.Removed}.");
-                var report = IndexStatusReport.Compute(database, store, embedder.ModelId, embedder.Dimensions, Chunking);
-                WriteReport(stdout, report);
-                complete &= report.IsComplete;
+                // Every available corpus takes part in merges and removals; --tax only narrows what is embedded.
+                summary = builder.Build(stores, cancellationToken, args.Has("tax") ? selected : null);
             }
-            return complete ? CliApp.ExitOk : CliApp.ExitFailure;
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                log.WriteLine("Index interrupted; finished batches are saved, run index again to resume.");
+                return CliApp.ExitFailure;
+            }
+            log.WriteLine($"Index: {summary.Rulings} ruling(s) from {summary.Listings} listing(s) ({summary.Merged} merged); " +
+                $"embedded {summary.Embedded} ({summary.ChunksWritten} chunk(s)), unchanged {summary.Unchanged}, removed {summary.Removed}.");
+            var reports = IndexStatusReport.Compute(database, stores, selected, embedder.ModelId, embedder.Dimensions, Chunking);
+            foreach (var report in reports) WriteReport(stdout, report);
+            return reports.All(r => r.IsComplete) ? CliApp.ExitOk : CliApp.ExitFailure;
         }
     }
 
     public static int IndexStatus(Arguments args, TextWriter stdout, TextWriter stderr, Func<IEmbedder>? embedderFactory)
     {
         args.EnsureOnly("tax", "data-dir");
-        var stores = Stores(args);
+        var (stores, selected) = Stores(args);
         var path = IndexPath(args);
         if (!File.Exists(path))
         {
@@ -94,15 +90,10 @@ internal static class IndexCommands
         using var database = IndexDatabase.OpenReadOnly(path);
         stdout.WriteLine($"Index {path}");
         stdout.WriteLine($"Model: {database.GetMeta("model") ?? "(none)"}; {database.GetMeta("chunking") ?? "(no chunking recorded)"}");
-        var complete = true;
-        foreach (var store in stores)
-        {
-            var report = IndexStatusReport.Compute(database, store, modelId, dimensions, Chunking);
-            WriteReport(stdout, report);
-            complete &= report.IsComplete;
-        }
+        var reports = IndexStatusReport.Compute(database, stores, selected, modelId, dimensions, Chunking);
+        foreach (var report in reports) WriteReport(stdout, report);
 
-        if (complete)
+        if (reports.All(r => r.IsComplete))
         {
             stdout.WriteLine("Status: complete (every extracted ruling has chunks and every chunk has a vector).");
             return CliApp.ExitOk;
@@ -117,7 +108,7 @@ internal static class IndexCommands
         var query = args.Get("query") ?? string.Join(' ', positional);
         if (string.IsNullOrWhiteSpace(query) || (positional.Count > 0 && args.Has("query")))
         {
-            throw new ArgumentException("Usage: search \"question\" [--tax T] [--article A] [--year Y] [--limit N] [--mode hybrid|keyword|vector]");
+            throw new ArgumentException("Usage: search \"question\" [--tax T [--article A]] [--year Y] [--limit N] [--mode hybrid|keyword|vector]");
         }
         var limit = args.GetInt("limit") ?? 10;
         if (limit is < 1 or > MaxLimit) throw new ArgumentException($"--limit must be between 1 and {MaxLimit}.");
@@ -129,6 +120,10 @@ internal static class IndexCommands
             var other => throw new ArgumentException($"Unknown --mode '{other}' (hybrid, keyword or vector)."),
         };
         var filters = new SearchFilters(Blank(args.Get("tax")), Blank(args.Get("article")), args.GetInt("year"));
+        if (filters.Article is not null && filters.Tax is null)
+        {
+            throw new ArgumentException("--article needs --tax: article numbers are only meaningful within one tax code.");
+        }
 
         var load = Stopwatch.StartNew();
         using var embedder = embedderFactory?.Invoke() ?? E5Embedder.Load(CliApp.ModelStoreFor(args));
@@ -160,6 +155,7 @@ internal static class IndexCommands
     {
         writer.WriteLine($"{report.Tax} extracted rulings: {report.Extracted}");
         writer.WriteLine($"  indexed rulings:        {report.Indexed}");
+        writer.WriteLine($"  merged (same PDF as an earlier tax): {report.Merged}");
         writer.WriteLine($"  missing (no chunks):    {report.Missing}");
         writer.WriteLine($"  outdated chunks:        {report.Outdated}");
         writer.WriteLine($"  stale (not in corpus):  {report.Stale}");
@@ -190,12 +186,23 @@ internal static class IndexCommands
 
     private static string IndexPath(Arguments args) => Path.Combine(DataDirectory.Resolve(args.Get("data-dir")), IndexFileName);
 
-    /// <summary>The requested tax, or every supported tax that has a crawled corpus.</summary>
-    private static List<CorpusStore> Stores(Arguments args)
+    /// <summary>
+    /// Every supported tax that has a crawled corpus (in source order), and the ones the command is
+    /// about: the --tax one, or all of them.
+    /// </summary>
+    private static (List<CorpusStore> Stores, List<string> Selected) Stores(Arguments args)
     {
         var root = CliApp.CorpusRoot(args);
-        if (args.Has("tax")) return [new CorpusStore(root, CliApp.RequireTax(args))];
         var stores = TaxSource.All.Select(source => new CorpusStore(root, source)).Where(s => File.Exists(s.ManifestPath)).ToList();
-        return stores.Count > 0 ? stores : throw new InvalidOperationException($"No corpus under {root}. Run: crawl --tax CIRS");
+        if (args.Has("tax"))
+        {
+            var source = CliApp.RequireTax(args);
+            var store = stores.FirstOrDefault(s => s.Source == source)
+                ?? throw new InvalidOperationException($"No corpus for {source.Code} under {root}. Run: crawl --tax {source.Code}");
+            return (stores, [store.Source.Code]);
+        }
+        return stores.Count > 0
+            ? (stores, stores.Select(s => s.Source.Code).ToList())
+            : throw new InvalidOperationException($"No corpus under {root}. Run: crawl --all");
     }
 }

@@ -14,7 +14,11 @@ public enum SearchMode
     Vector,
 }
 
-/// <summary>Filters applied to both the keyword and the vector list. Null means no filter.</summary>
+/// <summary>
+/// Filters applied to both the keyword and the vector list. Null means no filter. Tax and article
+/// match the listings of a ruling (a ruling listed by several taxes is found under each, with the
+/// article of that listing); an article is only meaningful within one tax, so it requires a tax.
+/// </summary>
 public sealed record SearchFilters(string? Tax = null, string? Article = null, int? Year = null);
 
 public sealed record SearchOptions
@@ -63,13 +67,12 @@ public sealed class HybridSearcher
     private readonly long[] _chunkIds;
     private readonly int[] _rulingOf;
     private readonly string[] _rulingIds;
-    private readonly string[] _taxes;
-    private readonly string[] _articles;
+    private readonly (string Tax, string Article)[][] _listings;
     private readonly int[] _years;
     private readonly Dictionary<long, int> _rowOfChunk;
 
     private HybridSearcher(string connectionString, IEmbedder embedder, int dimensions, float[] matrix, long[] chunkIds,
-        int[] rulingOf, string[] rulingIds, string[] taxes, string[] articles, int[] years)
+        int[] rulingOf, string[] rulingIds, (string Tax, string Article)[][] listings, int[] years)
     {
         _connectionString = connectionString;
         _embedder = embedder;
@@ -78,8 +81,7 @@ public sealed class HybridSearcher
         _chunkIds = chunkIds;
         _rulingOf = rulingOf;
         _rulingIds = rulingIds;
-        _taxes = taxes;
-        _articles = articles;
+        _listings = listings;
         _years = years;
         _rowOfChunk = new Dictionary<long, int>(chunkIds.Length);
         for (var i = 0; i < chunkIds.Length; i++) _rowOfChunk[chunkIds[i]] = i;
@@ -88,6 +90,9 @@ public sealed class HybridSearcher
     public int ChunkCount => _chunkIds.Length;
 
     public int RulingCount => _rulingIds.Length;
+
+    /// <summary>Size of the in-memory vector matrix (chunks times dimensions, float32).</summary>
+    public long VectorBytes => (long)_matrix.Length * sizeof(float);
 
     /// <summary>Loads every chunk vector of the index into memory. The index must have been built with the same model.</summary>
     public static HybridSearcher Open(string indexPath, IEmbedder embedder)
@@ -102,19 +107,25 @@ public sealed class HybridSearcher
 
         var rulingIndex = new Dictionary<string, int>(StringComparer.Ordinal);
         var rulingIds = new List<string>();
-        var taxes = new List<string>();
-        var articles = new List<string>();
         var years = new List<int>();
-        using (var command = database.Command("SELECT id, tax, article, COALESCE(year, 0) FROM rulings ORDER BY id"))
+        using (var command = database.Command("SELECT id, COALESCE(year, 0) FROM rulings ORDER BY id"))
         using (var reader = command.ExecuteReader())
         {
             while (reader.Read())
             {
                 rulingIndex[reader.GetString(0)] = rulingIds.Count;
                 rulingIds.Add(reader.GetString(0));
-                taxes.Add(reader.GetString(1));
-                articles.Add(reader.GetString(2));
-                years.Add(reader.GetInt32(3));
+                years.Add(reader.GetInt32(1));
+            }
+        }
+
+        var listings = rulingIds.Select(_ => new List<(string, string)>()).ToArray();
+        using (var command = database.Command("SELECT ruling_id, tax, article FROM listings ORDER BY id"))
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                if (rulingIndex.TryGetValue(reader.GetString(0), out var ruling)) listings[ruling].Add((reader.GetString(1), reader.GetString(2)));
             }
         }
 
@@ -135,12 +146,17 @@ public sealed class HybridSearcher
         }
 
         return new HybridSearcher(IndexDatabase.ConnectionString(indexPath, readOnly: true), embedder, dimensions,
-            matrix.ToArray(), chunkIds.ToArray(), rulingOf.ToArray(), rulingIds.ToArray(), taxes.ToArray(),
-            articles.ToArray(), years.ToArray());
+            matrix.ToArray(), chunkIds.ToArray(), rulingOf.ToArray(), rulingIds.ToArray(),
+            listings.Select(l => l.ToArray()).ToArray(), years.ToArray());
     }
 
+    /// <exception cref="ArgumentException">The filters have an article without a tax.</exception>
     public SearchResult Search(string query, SearchFilters filters, SearchOptions options)
     {
+        if (filters.Article is not null && filters.Tax is null)
+        {
+            throw new ArgumentException("An article filter needs a tax filter: article numbers are only meaningful within one tax code.", nameof(filters));
+        }
         var stopwatch = Stopwatch.StartNew();
         var terms = QueryTerms.Extract(query);
         if (string.IsNullOrWhiteSpace(query) || options.Limit <= 0)
@@ -170,8 +186,10 @@ public sealed class HybridSearcher
             JOIN chunks c ON c.id = chunks_fts.rowid
             JOIN rulings r ON r.id = c.ruling_id
             WHERE chunks_fts MATCH $match
-              AND ($tax IS NULL OR r.tax = $tax COLLATE NOCASE)
-              AND ($article IS NULL OR r.article = $article COLLATE NOCASE)
+              AND ($tax IS NULL OR EXISTS (
+                    SELECT 1 FROM listings l
+                    WHERE l.ruling_id = r.id AND l.tax = $tax COLLATE NOCASE
+                      AND ($article IS NULL OR l.article = $article COLLATE NOCASE)))
               AND ($year IS NULL OR r.year = $year)
             ORDER BY bm25(chunks_fts), c.id
             LIMIT $pool
@@ -195,9 +213,10 @@ public sealed class HybridSearcher
         var any = false;
         for (var r = 0; r < allowed.Length; r++)
         {
-            allowed[r] = (filters.Tax is null || string.Equals(_taxes[r], filters.Tax, StringComparison.OrdinalIgnoreCase))
-                && (filters.Article is null || string.Equals(_articles[r], filters.Article, StringComparison.OrdinalIgnoreCase))
-                && (filters.Year is null || _years[r] == filters.Year);
+            allowed[r] = (filters.Year is null || _years[r] == filters.Year)
+                && (filters.Tax is null || Array.Exists(_listings[r], listing =>
+                    string.Equals(listing.Tax, filters.Tax, StringComparison.OrdinalIgnoreCase)
+                    && (filters.Article is null || string.Equals(listing.Article, filters.Article, StringComparison.OrdinalIgnoreCase))));
             any |= allowed[r];
         }
         if (!any) return [];

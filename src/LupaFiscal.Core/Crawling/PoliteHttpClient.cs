@@ -54,7 +54,18 @@ public sealed class PoliteHttpClient : IDisposable
 
     public int RequestCount { get; private set; }
 
-    /// <summary>Returns the robots.txt rules for the URL's host, fetching them once per client (once per run).</summary>
+    /// <summary>
+    /// Fetches robots.txt for the URL's host again and caches the new rules. Called at the start of
+    /// every tax run, so a long multi-tax run obeys a robots.txt that appears or changes meanwhile.
+    /// </summary>
+    public Task<RobotsRules> RefreshRobotsAsync(Uri url, CancellationToken cancellationToken)
+    {
+        _policy.EnsureAllowed(url);
+        _robots.Remove(url.IdnHost);
+        return GetRobotsAsync(url, cancellationToken);
+    }
+
+    /// <summary>Returns the robots.txt rules for the URL's host, fetching them once until <see cref="RefreshRobotsAsync"/>.</summary>
     public async Task<RobotsRules> GetRobotsAsync(Uri url, CancellationToken cancellationToken)
     {
         _policy.EnsureAllowed(url);

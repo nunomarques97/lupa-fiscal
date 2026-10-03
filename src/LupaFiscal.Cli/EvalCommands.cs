@@ -19,11 +19,15 @@ internal static class EvalCommands
     public static int Eval(Arguments args, TextWriter stdout, TextWriter stderr, Func<IEmbedder>? embedderFactory,
         CancellationToken cancellationToken)
     {
-        args.EnsureOnly("questions", "out", "min-recall", "label", "note", "data-dir");
+        args.EnsureOnly("questions", "out", "min-recall", "record", "freeze", "label", "note", "data-dir");
         var questionsPath = args.Get("questions") ?? throw new ArgumentException(
-            "Usage: eval --questions FILE [--out FILE] [--min-recall R] [--label L] [--note N]");
+            "Usage: eval --questions FILE [--out FILE] [--min-recall R] [--record [--label L] [--note N] | --freeze]");
         var minRecall = args.GetDouble("min-recall");
         if (minRecall is < 0 or > 1) throw new ArgumentException("--min-recall must be between 0 and 1.");
+        var record = args.Has("record");
+        var freeze = args.Has("freeze");
+        if (record && freeze) throw new ArgumentException("--record and --freeze cannot be combined: freeze first, then measure.");
+        if (!record && (args.Has("label") || args.Has("note"))) throw new ArgumentException("--label and --note name a recorded iteration; add --record.");
         var reportPath = ReportPath(args);
 
         var set = EvalQuestionSet.Load(questionsPath);
@@ -43,6 +47,19 @@ internal static class EvalCommands
 
         var historyPath = EvalHistory.PathFor(reportPath);
         var history = EvalHistory.Load(historyPath);
+        // A frozen set is checked on every run, recorded or not, so no number is ever reported for edited questions.
+        history.EnsureFrozen(set);
+
+        if (freeze)
+        {
+            history.Freeze(set, RelativeToRepository(questionsPath));
+            history.TargetRecallAt10 = minRecall ?? history.TargetRecallAt10;
+            history.Save(historyPath);
+            EvalReport.Write(reportPath, history);
+            stdout.WriteLine($"Froze {questionsPath}: {set.Questions.Count} questions, {set.ExpectedCount} expected rulings, hash {set.Hash[..16]}, " +
+                $"in {historyPath}. Nothing was measured.");
+            return CliApp.ExitOk;
+        }
 
         using var embedder = embedderFactory?.Invoke() ?? E5Embedder.Load(CliApp.ModelStoreFor(args));
         var searcher = HybridSearcher.Open(indexPath, embedder);
@@ -59,12 +76,20 @@ internal static class EvalCommands
                 $"coverage@10 {Number(result.CoverageAtK)}  ({result.Answered}/{result.Outcomes.Count} answered)");
         }
 
-        var iteration = history.Record(set, RelativeToRepository(questionsPath), config, results, args.Get("label"), args.Get("note"),
-            DateTimeOffset.UtcNow);
-        history.TargetRecallAt10 = minRecall ?? history.TargetRecallAt10;
-        history.Save(historyPath);
-        EvalReport.Write(reportPath, history);
-        stdout.WriteLine($"Recorded as \"{iteration.Label}\" ({history.Iterations.Count} iteration(s)); report {reportPath}");
+        // Scores are written only when asked, like bench timings: a plain eval is a check and leaves the files alone.
+        if (record)
+        {
+            var iteration = history.Record(set, RelativeToRepository(questionsPath), config, results, args.Get("label"), args.Get("note"),
+                DateTimeOffset.UtcNow);
+            history.TargetRecallAt10 = minRecall ?? history.TargetRecallAt10;
+            history.Save(historyPath);
+            EvalReport.Write(reportPath, history);
+            stdout.WriteLine($"Recorded as \"{iteration.Label}\" ({history.Iterations.Count} iteration(s)); report {reportPath}");
+        }
+        else
+        {
+            stdout.WriteLine("Not recorded; pass --record to update the report and its history.");
+        }
 
         var hybrid = results.Single(r => r.Mode == SearchMode.Hybrid);
         var failed = hybrid.Outcomes.Where(o => o.Recall == 0).Select(o => o.Question.Id).ToList();
@@ -98,6 +123,14 @@ internal static class EvalCommands
         using var embedder = embedderFactory?.Invoke() ?? E5Embedder.Load(CliApp.ModelStoreFor(args));
         var searcher = HybridSearcher.Open(indexPath, embedder);
         load.Stop();
+        // Load-time lists are garbage once the matrix is built; collect them so the working set reflects what search keeps.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        using (var process = Process.GetCurrentProcess())
+        {
+            stdout.WriteLine($"Loaded {searcher.RulingCount} rulings and {searcher.ChunkCount} chunk vectors: vector matrix {Mb(searcher.VectorBytes)}, " +
+                $"process working set {Mb(process.WorkingSet64)}, managed heap {Mb(GC.GetTotalMemory(false))}.");
+        }
 
         var bench = LatencyBenchmark.Run(searcher, Search, set, cancellationToken);
         bench.RecordedAt = DateTimeOffset.UtcNow;
@@ -131,10 +164,13 @@ internal static class EvalCommands
         return CliApp.ExitOk;
     }
 
-    /// <summary>The retrieval parameters an iteration may change, as recorded in the history.</summary>
+    /// <summary>
+    /// The retrieval parameters an iteration may change, and the size of the index they ran on, as recorded
+    /// in the history. Scores over a grown index are a new row, so the earlier ones are kept.
+    /// </summary>
     internal static string Describe(IndexDatabase database) =>
         $"model {database.GetMeta("model") ?? "(none)"}; {database.GetMeta("chunking") ?? "(no chunking recorded)"}; " +
-        $"{Search.CandidatePool} candidates per list, RRF k {Search.RrfK}";
+        $"{Search.CandidatePool} candidates per list, RRF k {Search.RrfK}; index of {database.RulingIds().Count} rulings";
 
     private static string ReportPath(Arguments args) =>
         Path.GetFullPath(args.Get("out") ?? Path.Combine(DataDirectory.RepositoryRoot(), DefaultReport));
@@ -154,4 +190,6 @@ internal static class EvalCommands
     private static string Number(double value) => value.ToString("0.000", CultureInfo.InvariantCulture);
 
     private static string Ms(double value) => value.ToString("0.0", CultureInfo.InvariantCulture) + " ms";
+
+    private static string Mb(long bytes) => (bytes / (1024.0 * 1024.0)).ToString("0.0", CultureInfo.InvariantCulture) + " MB";
 }

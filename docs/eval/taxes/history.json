@@ -1,0 +1,562 @@
+{
+  "questionsPath": "eval/questions-taxes.json",
+  "questionsHash": "29cdcc1b6214968da7035672ef36aae6ab368eb4089c42cdd48e709bc0a1c629",
+  "questionCount": 24,
+  "expectedCount": 90,
+  "targetRecallAt10": 0.7,
+  "iterations": [
+    {
+      "label": "baseline",
+      "config": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60; index of 5790 rulings",
+      "recordedAt": "2026-10-03T00:06:44.7964689+00:00",
+      "modes": {
+        "keyword": {
+          "recallAt10": 0.7083333333333334,
+          "mrrAt10": 0.4840277777777778,
+          "coverageAt10": 0.3573412698412699,
+          "answered": 17,
+          "questions": 24
+        },
+        "vector": {
+          "recallAt10": 0.8333333333333334,
+          "mrrAt10": 0.5980324074074075,
+          "coverageAt10": 0.4504464285714285,
+          "answered": 20,
+          "questions": 24
+        },
+        "hybrid": {
+          "recallAt10": 0.8333333333333334,
+          "mrrAt10": 0.6453703703703704,
+          "coverageAt10": 0.44667658730158727,
+          "answered": 20,
+          "questions": 24
+        }
+      }
+    }
+  ],
+  "latestConfig": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60; index of 5790 rulings",
+  "latest": [
+    {
+      "id": "t01",
+      "tax": "CIVA",
+      "article": "9",
+      "question": "Sou psic\u00F3loga cl\u00EDnica e dou consultas de psicoterapia no meu consult\u00F3rio. Tenho de cobrar IVA aos pacientes?",
+      "expected": [
+        "civa-piv_25812",
+        "civa-informacao_13014",
+        "civa-inf-vinculativa_2009_2083",
+        "civa-informacao-2933",
+        "civa-informacao-3251",
+        "civa-vinculativa_17439",
+        "civa-vinculativa_19925"
+      ],
+      "firstExpectedRank": {
+        "keyword": 2,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-inf-vinculativa_2009_2083",
+        "civa-piv_27623",
+        "civa-informacao_13593"
+      ]
+    },
+    {
+      "id": "t02",
+      "tax": "CIVA",
+      "article": "Verba 2.37",
+      "question": "Quero p\u00F4r pain\u00E9is solares fotovoltaicos com bateria no telhado de casa. A empresa que os vende e instala pode cobrar IVA \u00E0 taxa reduzida?",
+      "expected": [
+        "civa-piv_25425",
+        "civa-piv_26056",
+        "civa-piv_26437",
+        "civa-piv_26346",
+        "civa-piv_27508",
+        "civa-piv_26960"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-piv_26346",
+        "civa-piv_26960",
+        "civa-piv_25916"
+      ]
+    },
+    {
+      "id": "t03",
+      "tax": "CIVA",
+      "article": "18",
+      "question": "Tenho um apartamento em alojamento local que arrendo a turistas por poucos dias. Que taxa de IVA ponho nas faturas das estadias?",
+      "expected": [
+        "civa-piv_24650",
+        "civa-informacao4111"
+      ],
+      "firstExpectedRank": {
+        "keyword": 14,
+        "vector": 2,
+        "hybrid": 3
+      },
+      "hybridTop": [
+        "civa-piv_26934",
+        "civa-piv_30668",
+        "civa-piv_24650"
+      ]
+    },
+    {
+      "id": "t04",
+      "tax": "CIVA",
+      "article": "9",
+      "question": "Dou explica\u00E7\u00F5es de matem\u00E1tica a alunos do secund\u00E1rio e passo recibos verdes. Tenho de cobrar IVA?",
+      "expected": [
+        "civa-inf-1116",
+        "civa-tratado-1986",
+        "civa-tratado-1817"
+      ],
+      "firstExpectedRank": {
+        "keyword": 14,
+        "vector": null,
+        "hybrid": 38
+      },
+      "hybridTop": [
+        "civa-informacao-2235",
+        "civa-vinculativa_21916",
+        "civa-piv_26953"
+      ]
+    },
+    {
+      "id": "t05",
+      "tax": "CIVA",
+      "article": "53",
+      "question": "Vou come\u00E7ar a dar aulas de vela a um clube como trabalhador independente e conto faturar pouco por ano. Posso ficar sem cobrar IVA?",
+      "expected": [
+        "civa-12468",
+        "civa-informacao_13593"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 3,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-12468",
+        "civa-informacao_7641",
+        "civa-piv_26934"
+      ]
+    },
+    {
+      "id": "t06",
+      "tax": "CIVA",
+      "article": "verba 2.27",
+      "question": "Vou fazer obras de remodela\u00E7\u00E3o na casa onde vivo. O empreiteiro pode faturar a obra com IVA a 6%?",
+      "expected": [
+        "civa-informacao-1075",
+        "civa-informacao_14676",
+        "civa-informacao_15421",
+        "civa-informacao_15432",
+        "civa-piv_27048",
+        "civa-piv_27137",
+        "civa-piv_28813",
+        "civa-informacao-3046"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-informacao_15432",
+        "civa-piv_23524",
+        "civa-informacao_16132"
+      ]
+    },
+    {
+      "id": "t07",
+      "tax": "CIVA",
+      "article": "6",
+      "question": "A minha empresa faz programa\u00E7\u00E3o inform\u00E1tica para clientes nos Estados Unidos. Temos de cobrar IVA nessas faturas?",
+      "expected": [
+        "civa-informacao-3773",
+        "civa-informacao_13509",
+        "civa-informacao-4278",
+        "civa-informacao_15658"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-informacao_15658",
+        "civa-piv_22941",
+        "civa-piv_25642"
+      ]
+    },
+    {
+      "id": "t08",
+      "tax": "CIVA",
+      "article": "21",
+      "question": "A empresa vai comprar um carro 100% el\u00E9trico. Pode recuperar o IVA pago na compra?",
+      "expected": [
+        "civa-piv_28949",
+        "civa-informacao_8433",
+        "civa-informacao-9577",
+        "civa-piv_26763",
+        "civa-informacao_15520",
+        "civa-piv_29346"
+      ],
+      "firstExpectedRank": {
+        "keyword": 4,
+        "vector": 5,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "civa-piv_26763",
+        "civa-informacao_12951",
+        "civa-piv_28165"
+      ]
+    },
+    {
+      "id": "t09",
+      "tax": "CIRC",
+      "article": "43",
+      "question": "A minha empresa quer pagar um seguro de sa\u00FAde a todos os trabalhadores efetivos. Esse custo conta como gasto no IRC?",
+      "expected": [
+        "circ-piv_25976",
+        "circ-piv_12659_3139_2017",
+        "circ-piv_14217_2018_003021_dsirc",
+        "circ-fd_piv_24493"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "circ-piv_25976",
+        "circ-fd_piv_24493",
+        "circ-fd_piv_20548"
+      ]
+    },
+    {
+      "id": "t10",
+      "tax": "CIRC",
+      "article": "88",
+      "question": "A sociedade comprou este ano um carro el\u00E9trico caro para o gerente. Paga tributa\u00E7\u00E3o aut\u00F3noma sobre as despesas com o carro?",
+      "expected": [
+        "circ-piv_28789"
+      ],
+      "firstExpectedRank": {
+        "keyword": null,
+        "vector": 2,
+        "hybrid": 22
+      },
+      "hybridTop": [
+        "circ-piv_26595",
+        "piv_29716",
+        "circ-piv_25762"
+      ]
+    },
+    {
+      "id": "t11",
+      "tax": "CIRC",
+      "article": "23",
+      "question": "A empresa foi enganada num email falso e transferiu dinheiro para a conta de um burl\u00E3o. Podemos abater esse preju\u00EDzo no IRC?",
+      "expected": [
+        "circ-piv_27626",
+        "circ-piv_24043",
+        "circ-piv_24211",
+        "circ-piv_25264",
+        "circ-piv_29419"
+      ],
+      "firstExpectedRank": {
+        "keyword": 5,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "circ-piv_25264",
+        "circ-fd_proc_2017_003943",
+        "circ-fd_circ_2016_003475"
+      ]
+    },
+    {
+      "id": "t12",
+      "tax": "CIRC",
+      "article": "6",
+      "question": "Tenho uma sociedade de advogados com outros colegas. A sociedade paga IRC ou os lucros s\u00E3o tributados no IRS de cada s\u00F3cio?",
+      "expected": [
+        "circ-piv_27017",
+        "circ-fd_piv_16150",
+        "circ-piv_29244",
+        "circ-piv_25581",
+        "circ-piv_27684"
+      ],
+      "firstExpectedRank": {
+        "keyword": 6,
+        "vector": 1,
+        "hybrid": 3
+      },
+      "hybridTop": [
+        "circ-piv_28286",
+        "piv_25501",
+        "circ-piv_25581"
+      ]
+    },
+    {
+      "id": "t13",
+      "tax": "CIRC",
+      "article": "10",
+      "question": "Somos uma associa\u00E7\u00E3o sem fins lucrativos isenta de IRC e recebemos rendas de um pr\u00E9dio que nos deixaram. Essas rendas tamb\u00E9m est\u00E3o isentas?",
+      "expected": [
+        "circ-piv_28454",
+        "circ-fd_circ_536_2017",
+        "circ-piv_30113"
+      ],
+      "firstExpectedRank": {
+        "keyword": null,
+        "vector": 4,
+        "hybrid": 10
+      },
+      "hybridTop": [
+        "circ-piv_25027",
+        "circ-piv_21004",
+        "circ-fd_piv_16336"
+      ]
+    },
+    {
+      "id": "t14",
+      "tax": "CIMT",
+      "article": "9",
+      "question": "Tenho 29 anos e vou comprar a minha primeira casa, mas a casa dos meus pais, que morreram, ainda n\u00E3o foi partilhada entre mim e os meus irm\u00E3os. Isso tira-me o IMT Jovem?",
+      "expected": [
+        "cimt-piv_26875",
+        "cimt-piv_26991",
+        "cimt-piv_30175"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "cimt-piv_26991",
+        "cimt-piv_26906",
+        "selo-piv_26876"
+      ]
+    },
+    {
+      "id": "t15",
+      "tax": "CIMT",
+      "article": "11",
+      "question": "Comprei casa com isen\u00E7\u00E3o do IMT Jovem e agora vou trabalhar para outra cidade longe dali. Se sair da casa antes dos seis anos perco a isen\u00E7\u00E3o?",
+      "expected": [
+        "cimt-piv_28979",
+        "cimt-piv_29666"
+      ],
+      "firstExpectedRank": {
+        "keyword": 2,
+        "vector": 22,
+        "hybrid": 9
+      },
+      "hybridTop": [
+        "cimt-piv_26906",
+        "cimt-piv_29617",
+        "cimt-piv_29953"
+      ]
+    },
+    {
+      "id": "t16",
+      "tax": "CIMT",
+      "article": "2",
+      "question": "Vou comprar a quota de um s\u00F3cio numa empresa que tem pr\u00E9dios e fico com 80% do capital. Tenho de pagar IMT?",
+      "expected": [
+        "cimt-imt_iv_12514",
+        "cimt-imt_iv_8567",
+        "cimt-piv_25060"
+      ],
+      "firstExpectedRank": {
+        "keyword": 3,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "cimt-imt_iv_8567",
+        "cimt-piv_25787",
+        "cimt-imt_iv_12099"
+      ]
+    },
+    {
+      "id": "t17",
+      "tax": "SELO",
+      "article": "1",
+      "question": "A minha loja vai sortear vales de compras pelos clientes. H\u00E1 imposto do selo sobre esses pr\u00E9mios?",
+      "expected": [
+        "selo-is_iv_19706",
+        "selo-is_iv_12749",
+        "selo-is_iv_23309",
+        "selo-is_ive-14602",
+        "selo-is_ive_14735",
+        "selo-ive_17955"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "selo-is_iv_19706",
+        "selo-is_ive_13951",
+        "selo-is_ive_16359"
+      ]
+    },
+    {
+      "id": "t18",
+      "tax": "SELO",
+      "article": "1",
+      "question": "Os meus pais v\u00E3o dar-me dinheiro para ajudar a comprar casa. Tenho de declarar essa doa\u00E7\u00E3o \u00E0s Finan\u00E7as?",
+      "expected": [
+        "selo-is_iv_21902"
+      ],
+      "firstExpectedRank": {
+        "keyword": null,
+        "vector": null,
+        "hybrid": null
+      },
+      "hybridTop": [
+        "piv_29169",
+        "cimt-piv_26906",
+        "piv_26968"
+      ]
+    },
+    {
+      "id": "t19",
+      "tax": "SELO",
+      "article": "7",
+      "question": "As empresas do nosso grupo juntam o dinheiro numa conta central e emprestam umas \u00E0s outras. Esses empr\u00E9stimos pagam imposto do selo?",
+      "expected": [
+        "selo-is_iv-_23678",
+        "selo-is_iv_18431",
+        "selo-iv_17783",
+        "selo-iv_22551",
+        "selo-is_iv_8033",
+        "selo-is_iv_-9461"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 3,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "selo-is_iv_-9461",
+        "selo-is_iv_18431",
+        "selo-selo_007_1_j"
+      ]
+    },
+    {
+      "id": "t20",
+      "tax": "CIMI",
+      "article": "8",
+      "question": "A casa est\u00E1 em nome do meu filho, mas eu fiquei com o direito de habita\u00E7\u00E3o para toda a vida. Quem tem de pagar o IMI?",
+      "expected": [
+        "cimi-ive_10653_cimi_art_8",
+        "cimi-ive_7725_cimi_art_8",
+        "cimi-imi_iv_20032"
+      ],
+      "firstExpectedRank": {
+        "keyword": 3,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "cimi-imi_iv_20032",
+        "cimi-ive_10653_cimi_art_8",
+        "cimi-ive_7725_cimi_art_8"
+      ]
+    },
+    {
+      "id": "t21",
+      "tax": "CIMI",
+      "article": "6",
+      "question": "Passei o meu apartamento para alojamento local. Tenho de mudar a afeta\u00E7\u00E3o na caderneta predial de habita\u00E7\u00E3o para servi\u00E7os?",
+      "expected": [
+        "cimi-ive_9931_cimi_art_6",
+        "cimi-ive_10728_cimi_art_6"
+      ],
+      "firstExpectedRank": {
+        "keyword": 28,
+        "vector": 9,
+        "hybrid": 9
+      },
+      "hybridTop": [
+        "cimt-piv_27686",
+        "cimt-imt_ive_10727",
+        "cimt-piv_26681"
+      ]
+    },
+    {
+      "id": "t22",
+      "tax": "EBF",
+      "article": "46",
+      "question": "Comprei uma casa para viver com a minha fam\u00EDlia. Tenho direito a ficar uns anos sem pagar IMI e preciso de pedir?",
+      "expected": [
+        "ebf-ive_13041_ebf_art_46",
+        "ebf-ficha-doutrinaria_informacao-vinculativa-proc-867_09",
+        "ebf-ive_5784_ebf_art46",
+        "ebf-ive_12934_ebf_art46"
+      ],
+      "firstExpectedRank": {
+        "keyword": null,
+        "vector": null,
+        "hybrid": null
+      },
+      "hybridTop": [
+        "piv_29178",
+        "cimi-imi_iv_20032",
+        "piv_28882"
+      ]
+    },
+    {
+      "id": "t23",
+      "tax": "EBF",
+      "article": "45",
+      "question": "Comprei um pr\u00E9dio antigo para reabilitar e n\u00E3o paguei IMT. At\u00E9 quando tenho de come\u00E7ar as obras para n\u00E3o perder a isen\u00E7\u00E3o?",
+      "expected": [
+        "ebf-imt_iv_10910",
+        "ebf-imt_iv_6421"
+      ],
+      "firstExpectedRank": {
+        "keyword": 1,
+        "vector": 8,
+        "hybrid": 2
+      },
+      "hybridTop": [
+        "ebf-piv_23694",
+        "ebf-imt_iv_10910",
+        "cimt-imt_iv_10910"
+      ]
+    },
+    {
+      "id": "t24",
+      "tax": "CIUC",
+      "article": "5",
+      "question": "A minha mulher tem uma incapacidade de 80%, mas o carro est\u00E1 registado em meu nome. Podemos ficar isentos do IUC?",
+      "expected": [
+        "ciuc-ive_3375-786_2012",
+        "ciuc-ive-3221-309_2012"
+      ],
+      "firstExpectedRank": {
+        "keyword": 3,
+        "vector": 1,
+        "hybrid": 1
+      },
+      "hybridTop": [
+        "ciuc-ive_3375-786_2012",
+        "ciuc-piv_27836",
+        "ciuc-iuc_ive_17550"
+      ]
+    }
+  ]
+}

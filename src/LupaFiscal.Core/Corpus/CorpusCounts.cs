@@ -19,6 +19,12 @@ public sealed record CorpusCounts(
     /// <summary>PDFs obtained so far (extracted, skipped as scanned, or awaiting extraction).</summary>
     public int PdfsCached => Downloaded + Extracted + ScannedSkipped;
 
+    public static CorpusCounts Total(IEnumerable<CorpusCounts> counts) =>
+        counts.Aggregate(new CorpusCounts(0, 0, 0, 0, 0, 0, 0), (total, c) => new CorpusCounts(
+            total.Listed + c.Listed, total.Pending + c.Pending, total.Downloaded + c.Downloaded,
+            total.Extracted + c.Extracted, total.ScannedSkipped + c.ScannedSkipped, total.Failed + c.Failed,
+            total.Delisted + c.Delisted));
+
     public static CorpusCounts From(CorpusManifest manifest)
     {
         var listed = manifest.Rulings.Where(r => r.Listed).ToList();

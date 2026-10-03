@@ -15,7 +15,8 @@ public sealed record SearchQuery(string Text, string? Tax, string? Article, int?
     /// <summary>
     /// Validates the query string. Every parameter may appear at most once. q is required and not
     /// blank, at most <see cref="MaxQueryLength"/> characters. tax and article are free text: blank
-    /// means no filter and an unknown value simply matches nothing. year and limit must be plain
+    /// means no filter and an unknown value simply matches nothing; an article is only meaningful
+    /// within one tax code, so an article without a tax is rejected. year and limit must be plain
     /// decimal digits within range (out-of-range values are rejected, never clamped); an empty value
     /// means the parameter is absent, as an empty form field would send it.
     /// </summary>
@@ -36,6 +37,10 @@ public sealed record SearchQuery(string Text, string? Tax, string? Article, int?
 
         var tax = Blank(Single(query, "tax", errors));
         var article = Blank(Single(query, "article", errors));
+        if (article is not null && tax is null && !errors.ContainsKey("tax"))
+        {
+            errors["article"] = ["The article filter needs a tax (tax): article numbers are only meaningful within one tax code."];
+        }
         var year = Number(query, "year", MinYear, MaxYear, errors);
         var limit = Number(query, "limit", MinLimit, MaxLimit, errors) ?? DefaultLimit;
 

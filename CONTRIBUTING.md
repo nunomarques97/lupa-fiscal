@@ -14,11 +14,11 @@ npm ci
 
 `npm ci` at the root installs the Playwright tooling used for screenshots. It uses an existing Playwright Chromium; install one with `npx playwright install chromium` only if you do not have it.
 
-You only need real data to run the search locally or to measure retrieval: follow "Build and run" in the [README](README.md). Real data stays in `data/`, which is ignored by Git.
+You only need real data to run the search locally or to measure retrieval: follow "Quick start" in the [README](README.md). Real data stays in `data/`, which is ignored by Git.
 
 ## Tests
 
-Every change must keep these green. They run offline, on a small synthetic corpus, with a fake embedder:
+Every change must keep these green. They run offline, on a small synthetic corpus of two taxes, with a fake embedder:
 
 ```
 dotnet test LupaFiscal.slnx
@@ -32,7 +32,15 @@ Tests that need the real embedding model run only when it is in `data/models`, a
 
 Depending on what you change, also bring evidence:
 
-- **Search quality** (chunking, embeddings, ranking): run `eval` and `bench` (see the README) and put the recall@10, MRR@10 and latency before and after in the pull request. The question set in `eval/questions.json` is frozen; do not edit it to improve a score (see [eval/README.md](eval/README.md)).
+- **Search quality** (chunking, embeddings, ranking): run `eval` on both question sets and `bench` on the full index of every tax, and put the recall@10, MRR@10 and latency before and after in the pull request:
+
+  ```
+  dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.85
+  dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions-taxes.json --out docs/eval/taxes/report.md
+  dotnet run --project src/LupaFiscal.Cli -- bench --questions eval/questions.json --max-ms 1000
+  ```
+
+  They only print their numbers; add `--record` (with `--label` and `--note` for `eval`) to write them to the reports in `docs/eval/`. Both question sets, `eval/questions.json` (CIRS) and `eval/questions-taxes.json` (other taxes), are frozen; do not edit them to improve a score (see [eval/README.md](eval/README.md)).
 - **Interface**: follow [DESIGN.md](DESIGN.md) and run `npm run ui:evidence`, which checks the main screens in a real browser and saves screenshots at 1440 and 390 px. Attach the ones you changed.
 
 CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the same checks on Windows. It never crawls and never downloads the model.
@@ -44,7 +52,7 @@ The rulings are published by a public body on a shared website. The crawler must
 - Respect `robots.txt`. It is fetched at the start of every run and obeyed if it appears or changes.
 - Never make more than one request per second. `--interval-seconds` cannot go below 1; do not work around it.
 - Keep the descriptive User-Agent with a link to this repository.
-- Download each PDF once. Everything is cached in `data/corpus/`, and runs resume where they stopped.
+- Download each PDF once. Everything is cached in `data/corpus/<tax>/`, and runs resume where they stopped. `crawl --all` takes the taxes one after another through one client, never in parallel; use `--max-downloads N` to crawl in batches.
 - Back off on errors: 429 and 5xx responses are retried with increasing waits, and a run stops after repeated failures.
 - Contact only the allowlisted host over https.
 - Never crawl in tests or in CI. Tests use synthetic listings and PDFs generated in the test code. Do not commit real rulings, PDFs or extracted text.

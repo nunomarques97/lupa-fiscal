@@ -18,29 +18,37 @@ internal static class CliApp
         Usage: lupa-fiscal <command> [options]
 
         Commands:
-          crawl --tax CIRS           Download the listed rulings (polite, resumable) and extract their text.
+          crawl --tax T | --all      Download the listed rulings (polite, resumable) and extract their text;
+                                     --all crawls every supported tax, one after another.
               --interval-seconds N   Gap between requests, at least 1 (default 1).
               --max-retries N        Retries on 429/5xx/network errors, 0 to 10 (default 4).
               --retry-failed         Retry rulings that failed in an earlier run.
               --use-cached-listing   Do not request the listing again; use the cached response.
-              --max-downloads N      Stop after N PDF downloads.
-          extract --tax CIRS         Extract the text of every cached PDF again (offline, no requests).
-          corpus-status --tax CIRS   Print corpus counts; exits 0 only when no listed ruling is pending.
+              --max-downloads N      Stop after N PDF downloads (over the whole run with --all).
+          extract --tax T | --all    Extract the text of every cached PDF again (offline, no requests).
+          corpus-status --tax T | --all
+                                     Print corpus counts per tax; exits 0 only when no listed ruling is pending.
               --list-failed          Also list failed rulings with their reason.
           model download             Download the pinned embedding model into data/models (SHA-256 verified).
-          index [--tax CIRS]         Chunk and embed every extracted ruling into data/lupa-fiscal.db (idempotent;
-                                     downloads the model first if needed).
-          index-status [--tax CIRS]  Print index counts; exits 0 only when every extracted ruling has chunks
-                                     and every chunk has a vector.
+          index [--tax T]            Chunk and embed the extracted rulings of every crawled tax into
+                                     data/lupa-fiscal.db (idempotent, resumable; downloads the model first if
+                                     needed). A PDF already listed by an earlier tax is stored once.
+                                     --tax T only embeds the rulings that tax lists.
+          index-status [--tax T]     Print index counts per tax; exits 0 only when every extracted ruling is
+                                     indexed and every chunk has a vector.
           search "question"          Print the best passages with ruling metadata, source URL and elapsed ms.
-              --tax T --article A --year Y   Filters (applied to keyword and vector results).
+              --tax T --year Y       Filters (applied to keyword and vector results).
+              --article A            Article within the --tax code (requires --tax).
               --limit N              Results, 1 to 50 (default 10).
               --mode M               hybrid (default), keyword or vector.
           eval --questions FILE      Recall@10 and MRR@10 at ruling level for keyword, vector and hybrid search;
-                                     writes the report and its history (docs/eval/report.md and history.json).
-              --out FILE             Report path (default docs/eval/report.md in the repository).
+                                     prints them and writes nothing unless --record or --freeze is given.
+              --out FILE             Report path (default docs/eval/report.md in the repository); its
+                                     history.json sits in the same folder.
               --min-recall R         Exit 1 when hybrid recall@10 is below R (0 to 1).
-              --label L --note N     Name and describe the iteration being recorded.
+              --record               Record the scores in the report and its history.
+              --label L --note N     Name and describe the iteration being recorded (with --record).
+              --freeze               Record only the question set's hash, before any measurement.
           bench --questions FILE     Hybrid search latency (query embedding included) after one warm-up query;
                                      prints p50, p95 and max.
               --max-ms N             Exit 1 when the slowest query takes N ms or more (default 1000).
@@ -53,7 +61,7 @@ internal static class CliApp
 
     public static async Task<int> RunAsync(string[] args, TextWriter stdout, TextWriter stderr,
         CancellationToken cancellationToken, Func<HttpMessageHandler>? handlerFactory = null,
-        Func<IEmbedder>? embedderFactory = null)
+        Func<IEmbedder>? embedderFactory = null, ICrawlClock? crawlClock = null)
     {
         if (args.Length == 0 || args[0] is "help" or "--help" or "-h")
         {
@@ -82,7 +90,7 @@ internal static class CliApp
         {
             return args[0] switch
             {
-                "crawl" => await CrawlAsync(parsed, stdout, stderr, handlerFactory, cancellationToken),
+                "crawl" => await CrawlAsync(parsed, stdout, stderr, handlerFactory, crawlClock, cancellationToken),
                 "extract" => Extract(parsed, stdout, cancellationToken),
                 "corpus-status" => CorpusStatus(parsed, stdout, stderr),
                 "model" => await ModelAsync(positional, parsed, stdout, handlerFactory, cancellationToken),
@@ -149,10 +157,10 @@ internal static class CliApp
     }
 
     private static async Task<int> CrawlAsync(Arguments args, TextWriter stdout, TextWriter stderr,
-        Func<HttpMessageHandler>? handlerFactory, CancellationToken cancellationToken)
+        Func<HttpMessageHandler>? handlerFactory, ICrawlClock? clock, CancellationToken cancellationToken)
     {
-        var source = RequireTax(args);
-        args.EnsureOnly("tax", "data-dir", "interval-seconds", "max-retries", "retry-failed", "use-cached-listing", "max-downloads");
+        var sources = RequireTaxes(args);
+        args.EnsureOnly("tax", "all", "data-dir", "interval-seconds", "max-retries", "retry-failed", "use-cached-listing", "max-downloads");
 
         CrawlerOptions options;
         try
@@ -171,15 +179,15 @@ internal static class CliApp
         var maxDownloads = args.GetInt("max-downloads");
         if (maxDownloads is < 0) throw new ArgumentException("--max-downloads cannot be negative.");
 
-        var store = new CorpusStore(CorpusRoot(args), source);
-        Directory.CreateDirectory(store.TaxDirectory);
-        await using var logFile = new StreamWriter(Path.Combine(store.TaxDirectory, "crawl.log"), append: true, Encoding.UTF8);
-        var log = new TimestampedWriter(stdout, logFile);
+        var root = CorpusRoot(args);
+        var stores = sources.Select(source => new CorpusStore(root, source)).ToList();
+        using var log = new CrawlLog(stdout);
+        log.WriteLine($"Crawl {string.Join(", ", sources.Select(s => s.Code))} into {root}; interval {options.RequestInterval.TotalSeconds:0.###} s, max retries {options.MaxRetries}.");
 
-        log.WriteLine($"Crawl {source.Code} into {store.TaxDirectory}; interval {options.RequestInterval.TotalSeconds:0.###} s, max retries {options.MaxRetries}.");
+        // One client for the whole run: one request at a time, at least the interval apart, across taxes.
         using var client = new PoliteHttpClient(handlerFactory?.Invoke() ?? PoliteHttpClient.CreateDefaultHandler(),
-            options, SystemCrawlClock.Instance, log);
-        var crawler = new CorpusCrawler(client, store, new PdfTextExtractor(), options, log);
+            options, clock ?? SystemCrawlClock.Instance, log);
+        var crawler = new MultiTaxCrawler(client, stores, new PdfTextExtractor(), options, log.Switch);
         var run = new CrawlRunOptions
         {
             RetryFailed = args.Has("retry-failed"),
@@ -187,7 +195,7 @@ internal static class CliApp
             MaxDownloads = maxDownloads,
         };
 
-        CrawlSummary summary;
+        MultiTaxCrawlSummary summary;
         try
         {
             summary = await crawler.RunAsync(run, cancellationToken);
@@ -198,43 +206,93 @@ internal static class CliApp
             return ExitFailure;
         }
 
-        log.WriteLine($"Crawl finished: {summary.Requests} request(s), {summary.Downloads} PDF download(s).");
-        WriteCounts(log, source, summary.Counts);
+        for (var i = 0; i < stores.Count; i++)
+        {
+            var tax = summary.Taxes[i];
+            var taxLog = log.Switch(stores[i]);
+            if (tax.Summary is { } crawled)
+            {
+                taxLog.WriteLine($"{tax.Source.Code}: {crawled.Requests} request(s), {crawled.Downloads} PDF download(s).");
+            }
+            if (tax.Counts is { } counts) WriteCounts(taxLog, tax.Source, counts);
+            else taxLog.WriteLine($"{tax.Source.Code}: no corpus yet.");
+        }
+        new TimestampedWriter(stdout).WriteLine($"Crawl finished: {summary.Requests} request(s), {summary.Downloads} PDF download(s).");
         if (summary.Aborted)
         {
             stderr.WriteLine($"Crawl stopped: {summary.AbortReason}.");
             return ExitFailure;
         }
-        return summary.Counts.IsComplete ? ExitOk : ExitFailure;
+        return summary.IsComplete ? ExitOk : ExitFailure;
     }
 
     private static int Extract(Arguments args, TextWriter stdout, CancellationToken cancellationToken)
     {
-        var source = RequireTax(args);
-        args.EnsureOnly("tax", "data-dir");
-        var store = new CorpusStore(CorpusRoot(args), source);
-        if (store.LoadManifest() is null)
+        var sources = RequireTaxes(args);
+        args.EnsureOnly("tax", "all", "data-dir");
+        var root = CorpusRoot(args);
+        var stores = sources.Select(source => new CorpusStore(root, source)).ToList();
+        if (!stores.Any(store => File.Exists(store.ManifestPath)))
         {
-            throw new ArgumentException($"No corpus for {source.Code} at {store.TaxDirectory}. Run: crawl --tax {source.Code}");
+            throw new ArgumentException(stores.Count == 1
+                ? $"No corpus for {stores[0].Source.Code} at {stores[0].TaxDirectory}. Run: crawl --tax {stores[0].Source.Code}"
+                : $"No corpus under {root}. Run: crawl --all");
         }
 
         var log = new TimestampedWriter(stdout);
-        var summary = new RulingTextExtraction(store, new PdfTextExtractor(), log).ReextractAll(cancellationToken);
-        log.WriteLine($"Extracted {summary.Processed} cached PDF(s) again.");
-        WriteCounts(log, source, summary.Counts);
-        return summary.Counts.IsComplete ? ExitOk : ExitFailure;
+        var complete = true;
+        foreach (var store in stores)
+        {
+            if (!File.Exists(store.ManifestPath))
+            {
+                log.WriteLine($"No corpus for {store.Source.Code} at {store.TaxDirectory}; skipped. Run: crawl --tax {store.Source.Code}");
+                complete = false;
+                continue;
+            }
+            var summary = new RulingTextExtraction(store, new PdfTextExtractor(), log).ReextractAll(cancellationToken);
+            log.WriteLine($"Extracted {summary.Processed} cached PDF(s) again.");
+            WriteCounts(log, store.Source, summary.Counts);
+            complete &= summary.Counts.IsComplete;
+        }
+        return complete ? ExitOk : ExitFailure;
     }
 
     private static int CorpusStatus(Arguments args, TextWriter stdout, TextWriter stderr)
     {
-        var source = RequireTax(args);
-        args.EnsureOnly("tax", "data-dir", "list-failed");
-        var store = new CorpusStore(CorpusRoot(args), source);
+        var sources = RequireTaxes(args);
+        args.EnsureOnly("tax", "all", "data-dir", "list-failed");
+        var root = CorpusRoot(args);
+        var listFailed = args.Has("list-failed");
+        if (!args.Has("all"))
+        {
+            return TaxStatus(new CorpusStore(root, sources[0]), listFailed, stdout, stderr) is { IsComplete: true }
+                ? ExitOk
+                : ExitFailure;
+        }
+
+        var all = sources.Select(source => TaxStatus(new CorpusStore(root, source), listFailed, stdout, stdout)).ToList();
+        var crawled = all.OfType<CorpusCounts>().ToList();
+        stdout.WriteLine();
+        WriteCounts(stdout, $"All {sources.Count} taxes ({crawled.Count} crawled)", CorpusCounts.Total(crawled));
+        var incomplete = sources.Where((_, i) => all[i] is not { IsComplete: true }).Select(s => s.Code).ToList();
+        if (incomplete.Count == 0)
+        {
+            stdout.WriteLine("Status: complete (no listed ruling of any supported tax is pending).");
+            return ExitOk;
+        }
+        stdout.WriteLine($"Status: incomplete ({string.Join(", ", incomplete)}). Run: crawl --all");
+        return ExitFailure;
+    }
+
+    /// <summary>Prints the status of one tax; returns its counts, or null when it has no corpus.</summary>
+    private static CorpusCounts? TaxStatus(CorpusStore store, bool listFailed, TextWriter stdout, TextWriter stderr)
+    {
+        var source = store.Source;
         var manifest = store.LoadManifest();
         if (manifest is null)
         {
             stderr.WriteLine($"No corpus for {source.Code} at {store.TaxDirectory}. Run: crawl --tax {source.Code}");
-            return ExitFailure;
+            return null;
         }
 
         var counts = CorpusCounts.From(manifest);
@@ -248,7 +306,7 @@ internal static class CliApp
         {
             stdout.WriteLine($"Scanned-skipped report: {store.ScannedReportPath}");
         }
-        if (args.Has("list-failed"))
+        if (listFailed)
         {
             foreach (var ruling in manifest.Rulings.Where(r => r.Listed && r.State == RulingState.Failed))
             {
@@ -256,18 +314,18 @@ internal static class CliApp
             }
         }
 
-        if (counts.IsComplete)
-        {
-            stdout.WriteLine("Status: complete (no listed ruling is pending).");
-            return ExitOk;
-        }
-        stdout.WriteLine($"Status: incomplete ({counts.Pending + counts.Downloaded} listed ruling(s) still pending). Run: crawl --tax {source.Code}");
-        return ExitFailure;
+        stdout.WriteLine(counts.IsComplete
+            ? "Status: complete (no listed ruling is pending)."
+            : $"Status: incomplete ({counts.Pending + counts.Downloaded} listed ruling(s) still pending). Run: crawl --tax {source.Code}");
+        return counts;
     }
 
-    private static void WriteCounts(TextWriter writer, TaxSource source, CorpusCounts counts)
+    private static void WriteCounts(TextWriter writer, TaxSource source, CorpusCounts counts) =>
+        WriteCounts(writer, source.Code, counts);
+
+    private static void WriteCounts(TextWriter writer, string label, CorpusCounts counts)
     {
-        writer.WriteLine($"{source.Code} listed: {counts.Listed}");
+        writer.WriteLine($"{label} listed: {counts.Listed}");
         writer.WriteLine($"  pending:         {counts.Pending}");
         writer.WriteLine($"  downloaded:      {counts.PdfsCached} (awaiting extraction: {counts.Downloaded})");
         writer.WriteLine($"  extracted:       {counts.Extracted}");
@@ -281,8 +339,16 @@ internal static class CliApp
 
     internal static TaxSource RequireTax(Arguments args)
     {
-        var code = args.Get("tax") ?? throw new ArgumentException("Missing --tax (supported: " + SupportedTaxes() + ").");
+        var code = args.Get("tax") ?? throw new ArgumentException("Missing --tax or --all (supported: " + SupportedTaxes() + ").");
         return TaxSource.Find(code) ?? throw new ArgumentException($"Unsupported tax '{code}' (supported: {SupportedTaxes()}).");
+    }
+
+    /// <summary>The tax given with --tax, or every supported tax with --all (exactly one of the two).</summary>
+    internal static IReadOnlyList<TaxSource> RequireTaxes(Arguments args)
+    {
+        if (!args.Has("all")) return [RequireTax(args)];
+        if (args.Has("tax")) throw new ArgumentException("Use either --tax or --all, not both.");
+        return TaxSource.All;
     }
 
     private static string SupportedTaxes() => string.Join(", ", TaxSource.All.Select(s => s.Code));

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using LupaFiscal.Core.Crawling;
 using UglyToad.PdfPig.Core;
 using UglyToad.PdfPig.Fonts.Standard14Fonts;
 using UglyToad.PdfPig.Writer;
@@ -140,6 +141,30 @@ internal static class TestListing
     /// <summary>A listing of PIV_&lt;n&gt;.pdf rulings.</summary>
     public static string ForNumbers(params int[] numbers) =>
         Json(numbers.Select(n => Row(DocumentsPath + $"PIV_{n}.pdf", n.ToString())).ToArray());
+
+    public static string DocumentsPathFor(TaxSource source) => source.WebPath + "/Documents/";
+
+    public static string PdfUrlFor(TaxSource source, string fileName) =>
+        new Uri(new Uri(Origin), DocumentsPathFor(source) + fileName).AbsoluteUri;
+
+    /// <summary>A row in the column order of the library's listing fields.</summary>
+    public static string[] RowFor(TaxSource source, string href, string number, string date = "2026-09-23",
+        string article = "010", string subject = "Assunto de teste")
+    {
+        var columns = source.Columns;
+        return source.Fields.Select(field =>
+            field == TaxSource.DocIconField ? $"<a href='{href}'><img src='/_layouts/15/images/icpdf.png' alt='x.pdf' /></a>"
+            : field == columns.ProcessNumber ? number
+            : field == columns.PublishedOn ? $"<span style='white-space: nowrap;'>{date}</span>"
+            : field == columns.Diploma ? source.Code
+            : field == columns.Article[0] ? article
+            : field == columns.Subject ? subject
+            : "").ToArray();
+    }
+
+    /// <summary>A listing of PIV_&lt;n&gt;.pdf rulings of any library.</summary>
+    public static string ForNumbers(TaxSource source, params int[] numbers) =>
+        Json(numbers.Select(n => RowFor(source, DocumentsPathFor(source) + $"PIV_{n}.pdf", n.ToString())).ToArray());
 
     public static string ReadFixture(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name), Encoding.UTF8);

@@ -55,7 +55,7 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
         Assert.Equal("Posso deduzir as despesas de educação dos meus filhos?", body.GetProperty("query").GetString());
         Assert.True(body.GetProperty("tookMs").GetDouble() >= 0);
         var results = body.GetProperty("results").EnumerateArray().ToList();
-        Assert.Equal(ApiTestHost.Corpus.Count, results.Count);
+        Assert.Equal(ApiTestHost.RulingIds.Count, results.Count);
         Assert.Equal(results.Count, Ids(results).Count); // one passage per ruling
 
         var first = results[0];
@@ -105,7 +105,7 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
 
         Assert.True(highlighted > 5);
         // Markup in a ruling's text is returned as text, escaped in the JSON; the API never emits HTML.
-        var markup = results.Single(r => r.GetProperty("rulingId").GetString() == "piv_90006").GetProperty("passage").GetString()!;
+        var markup = results.Single(r => r.GetProperty("rulingId").GetString() == "circ-piv_90006").GetProperty("passage").GetString()!;
         Assert.Contains("<script>alert(1)</script>", markup);
         Assert.DoesNotContain('<', raw);
         Assert.DoesNotContain("<mark", raw, StringComparison.OrdinalIgnoreCase);
@@ -115,28 +115,76 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
     public async Task EachFilterRestrictsTheResults()
     {
         var all = Ids(await Results($"/api/search?q={Q(Gains)}&limit=50"));
-        Assert.Equal(ApiTestHost.Corpus.Select(r => r.Id).ToHashSet(), all);
+        Assert.Equal(ApiTestHost.RulingIds, all);
 
-        Assert.Equal(["piv_90006"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRC")));
-        Assert.Equal(all.Except(["piv_90006"]).ToHashSet(), Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=cirs")));
-        Assert.Equal(["piv_90002", "piv_90005", "piv_90006"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&article=10")));
-        Assert.Equal(["piv_90001"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&article=78-d")));
+        Assert.Equal(["circ-piv_90006"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRC")));
+        Assert.Equal(["piv_90001", "piv_90002", "piv_90003", "piv_90004", "piv_90005"],
+            Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=cirs")));
+        Assert.Equal(["piv_90002", "piv_90005"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRS&article=10")));
+        Assert.Equal(["piv_90001"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRS&article=78-d")));
         Assert.Equal(["piv_90002", "piv_90005"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&year=2023")));
+    }
+
+    [Fact]
+    public async Task AnIdenticalPdfListedByTwoTaxesIsOneResultFoundUnderBothTaxes()
+    {
+        var question = Q("Posso deduzir as despesas de educação dos meus filhos?");
+
+        var all = await Results($"/api/search?q={question}&limit=50");
+        var civa = await Results($"/api/search?q={question}&limit=50&tax=CIVA");
+
+        // Stored and returned once, as the CIRS ruling (CIRS comes first), never as the CIVA copy.
+        Assert.Single(all, r => r.GetProperty("rulingId").GetString() == "piv_90001");
+        Assert.DoesNotContain("civa-piv_95001", Ids(all));
+        Assert.Equal(["piv_90001", "civa-piv_90002", "civa-piv_95002"], Ids(civa));
+        var copy = civa.Single(r => r.GetProperty("rulingId").GetString() == "piv_90001");
+        Assert.Equal(("CIRS", "78-D"), (copy.GetProperty("tax").GetString(), copy.GetProperty("article").GetString()));
+        Assert.Equal(["CIRS", "CIVA"], civa.Select(r => r.GetProperty("tax").GetString()).Distinct().Order());
+
+        // The CIVA listing of that PDF is article 21; its CIRS article does not leak into CIVA.
+        Assert.Equal(["piv_90001"], Ids(await Results($"/api/search?q={question}&limit=50&tax=CIVA&article=21")));
+        Assert.Empty(await Results($"/api/search?q={question}&limit=50&tax=CIVA&article=78-D"));
+        Assert.Empty(await Results($"/api/search?q={question}&limit=50&tax=CIRS&article=21"));
+    }
+
+    [Fact]
+    public async Task AFileNameSharedByTwoTaxesWithDifferentContentIsTwoResults()
+    {
+        var results = await Results($"/api/search?q={Q("mais-valias locação de imóveis isenção")}&limit=50");
+
+        var gains = results.Single(r => r.GetProperty("rulingId").GetString() == "piv_90002");
+        var lease = results.Single(r => r.GetProperty("rulingId").GetString() == "civa-piv_90002");
+        Assert.Equal(("CIRS", "CIVA"), (gains.GetProperty("tax").GetString(), lease.GetProperty("tax").GetString()));
+        Assert.EndsWith("/cirs/Documents/PIV_90002.pdf", gains.GetProperty("sourceUrl").GetString());
+        Assert.EndsWith("/civa/Documents/PIV_90002.pdf", lease.GetProperty("sourceUrl").GetString());
+    }
+
+    [Theory]
+    [InlineData("CIRS", "piv_90003")]
+    [InlineData("civa", "civa-piv_95002")]
+    public async Task TheArticleFilterOnlyMatchesWithinTheSelectedTax(string tax, string expected)
+    {
+        // Article 8 exists in both CIRS and CIVA.
+        var results = await Results($"/api/search?q={Q("rendimentos prediais transmissão de bens")}&limit=50&tax={tax}&article=8");
+
+        Assert.Equal([expected], Ids(results));
     }
 
     [Fact]
     public async Task FiltersCombine()
     {
         Assert.Equal(["piv_90002", "piv_90005"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRS&article=10&year=2023")));
-        Assert.Equal(["piv_90006"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&article=10&year=2024")));
+        Assert.Equal(["circ-piv_90006"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRC&article=10&year=2024")));
         Assert.Empty(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIRC&year=2023"));
+        Assert.Equal(["piv_90001", "civa-piv_90002"], Ids(await Results($"/api/search?q={Q(Gains)}&limit=50&tax=CIVA&year=2024")));
         // Blank filters and an empty year mean no filter.
-        Assert.Equal(ApiTestHost.Corpus.Count, (await Results($"/api/search?q={Q(Gains)}&limit=50&tax=&article=%20&year=")).Count);
+        Assert.Equal(ApiTestHost.RulingIds.Count, (await Results($"/api/search?q={Q(Gains)}&limit=50&tax=&article=%20&year=")).Count);
     }
 
     [Theory]
     [InlineData("tax=IVA")]
-    [InlineData("article=999-Z")]
+    [InlineData("tax=IVA&article=8")]
+    [InlineData("tax=CIRS&article=999-Z")]
     [InlineData("tax=CIRS&article=12345678901234567890")]
     [InlineData("tax=%27%20OR%201%3D1%20--")]
     public async Task AnUnknownTaxOrArticleReturnsNoResults(string filter)
@@ -152,8 +200,8 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
     {
         Assert.Equal(2, (await Results($"/api/search?q={Q(Gains)}&limit=2")).Count);
         Assert.Single(await Results($"/api/search?q={Q(Gains)}&limit=1"));
-        Assert.Equal(ApiTestHost.Corpus.Count, (await Results($"/api/search?q={Q(Gains)}&limit=50")).Count);
-        Assert.Equal(ApiTestHost.Corpus.Count, (await Results($"/api/search?q={Q(Gains)}")).Count); // 6 rulings, default 10
+        Assert.Equal(ApiTestHost.RulingIds.Count, (await Results($"/api/search?q={Q(Gains)}&limit=50")).Count);
+        Assert.Equal(ApiTestHost.RulingIds.Count, (await Results($"/api/search?q={Q(Gains)}")).Count); // 8 rulings, default 10
         Assert.Equal(200, (int)(await Get($"/api/search?q={new string('a', 500)}")).Response.StatusCode);
     }
 
@@ -180,6 +228,9 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
     [InlineData("q=x&limit=1e1", "limit")]
     [InlineData("q=x&limit=99999999999", "limit")]
     [InlineData("q=x&tax=CIRS&tax=CIRC", "tax")]
+    [InlineData("q=x&article=10", "article")]
+    [InlineData("q=x&article=10&tax=%20", "article")]
+    [InlineData("q=x&article=10&tax=CIRS&tax=CIRC", "tax")]
     public async Task InvalidRequestsReturn400ProblemDetails(string queryString, string field)
     {
         var url = "/api/search?" + queryString.Replace("q=LONG", "q=" + new string('a', LupaFiscal.Api.SearchQuery.MaxQueryLength + 1), StringComparison.Ordinal);
@@ -226,9 +277,19 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
         static List<(string, int)> Pairs(JsonElement list) => list.EnumerateArray()
             .Select(v => (v.GetProperty("value").ToString(), v.GetProperty("count").GetInt32())).ToList();
 
-        Assert.Equal([("CIRC", 1), ("CIRS", 5)], Pairs(body.GetProperty("taxes")));
-        Assert.Equal([("8", 1), ("10", 3), ("11", 1), ("78-D", 1)], Pairs(body.GetProperty("articles")));
-        Assert.Equal([("2024", 2), ("2023", 2), ("2022", 1), ("2021", 1)], Pairs(body.GetProperty("years")));
+        Assert.Equal(["value", "count"], body.GetProperty("taxes")[0].EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["tax", "value", "count"], body.GetProperty("articles")[0].EnumerateObject().Select(p => p.Name));
+        // Per listing: the PDF listed by CIRS and CIVA counts in both taxes, under its article in each.
+        Assert.Equal([("CIRC", 1), ("CIRS", 5), ("CIVA", 3)], Pairs(body.GetProperty("taxes")));
+        var articles = body.GetProperty("articles").EnumerateArray()
+            .Select(v => (v.GetProperty("tax").GetString(), v.GetProperty("value").GetString(), v.GetProperty("count").GetInt32()))
+            .ToList();
+        Assert.Equal(
+            [("CIRC", "10", 1), ("CIRS", "8", 1), ("CIRS", "10", 2), ("CIRS", "11", 1), ("CIRS", "78-D", 1),
+             ("CIVA", "8", 1), ("CIVA", "9", 1), ("CIVA", "21", 1)],
+            articles);
+        // Years count each stored ruling once.
+        Assert.Equal([("2025", 1), ("2024", 3), ("2023", 2), ("2022", 1), ("2021", 1)], Pairs(body.GetProperty("years")));
         Assert.Equal(JsonValueKind.Number, body.GetProperty("years")[0].GetProperty("value").ValueKind);
     }
 
@@ -239,7 +300,7 @@ public sealed class ApiTests(ApiHostFixture fixture) : IClassFixture<ApiHostFixt
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("ok", body.GetProperty("status").GetString());
-        Assert.Equal(ApiTestHost.Corpus.Count, body.GetProperty("rulings").GetInt32());
+        Assert.Equal(ApiTestHost.RulingIds.Count, body.GetProperty("rulings").GetInt32());
         using var connection = new SqliteConnection(IndexDatabase.ConnectionString(fixture.Host.IndexPath, readOnly: true));
         connection.Open();
         using var command = connection.CreateCommand();
@@ -307,7 +368,8 @@ public sealed class ApiHostTests
         var body = JsonDocument.Parse(await host.Client.GetStringAsync("/api/search?q=rendimentos&limit=50")).RootElement;
         var results = body.GetProperty("results").EnumerateArray().ToList();
 
-        Assert.Equal(["piv_90001", "piv_90006"], results.Select(r => r.GetProperty("rulingId").GetString()).Order());
+        Assert.Equal(["circ-piv_90006", "civa-piv_90002", "civa-piv_95002", "piv_90001"],
+            results.Select(r => r.GetProperty("rulingId").GetString()).Order(StringComparer.Ordinal));
         Assert.All(results, r => Assert.StartsWith("https://info.portaldasfinancas.gov.pt/", r.GetProperty("sourceUrl").GetString()));
     }
 

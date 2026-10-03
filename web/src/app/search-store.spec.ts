@@ -22,7 +22,8 @@ class FakeApi {
   }
 }
 
-const params = (q: string, article = ''): SearchParams => ({ q, tax: '', article, year: '' });
+// An article is only sent with its tax, as the filters do.
+const params = (q: string, article = '', tax = article ? 'CIRS' : ''): SearchParams => ({ q, tax, article, year: '' });
 
 function result(rulingId: string, sourceUrl = 'https://info.portaldasfinancas.gov.pt/x.pdf'): SearchResult {
   return {
@@ -112,6 +113,30 @@ describe('SearchStore', () => {
     const state = store.state();
     expect(state.kind === 'results' && state.response.results[0].rulingId).toBe('FILTERED');
   });
+
+  for (const outcome of ['success', 'failure'] as const) {
+    it(`ignores a late earlier ${outcome} when the tax changes mid-request`, async () => {
+      void store.search(params('a', '', 'CIRS'));
+      void store.search(params('a', '', 'CIVA'));
+      expect(api.calls[0].signal.aborted).toBe(true);
+      expect(api.calls[1].params.tax).toBe('CIVA');
+
+      api.calls[1].resolve(response('IVA1'));
+      await flush();
+      if (outcome === 'success') api.calls[0].resolve(response('IRS1'));
+      else api.calls[0].reject(new Error('500'));
+      await flush();
+
+      const state = store.state();
+      expect(state.kind).toBe('results');
+      if (state.kind === 'results') {
+        expect(state.params.tax).toBe('CIVA');
+        expect(state.response.results.map(r => r.rulingId)).toEqual(['IVA1']);
+      }
+      expect(store.submitted()?.tax).toBe('CIVA');
+      expect(store.announcement()).toBe('1 informação vinculativa encontrada.');
+    });
+  }
 
   it('retries the last submitted search after a failure and recovers', async () => {
     void store.search(params('a', '13'));

@@ -37,9 +37,14 @@ export interface FacetValue<T = string> {
   count: number;
 }
 
+/** An article within one tax: article numbers of different codes are never merged. */
+export interface ArticleFacetValue extends FacetValue {
+  tax: string;
+}
+
 export interface FacetsResponse {
   taxes: FacetValue[];
-  articles: FacetValue[];
+  articles: ArticleFacetValue[];
   years: FacetValue<number>[];
 }
 

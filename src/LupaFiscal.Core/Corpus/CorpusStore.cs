@@ -87,7 +87,7 @@ public sealed class CorpusStore
         var builder = new StringBuilder();
         builder.AppendLine($"# Scanned PDFs skipped ({Source.Code})");
         builder.AppendLine();
-        builder.AppendLine($"PDFs with fewer than {Extraction.PdfTextExtractor.MinTextChars} letters or digits in their text layer are not indexed (no OCR in v0.1).");
+        builder.AppendLine($"PDFs with fewer than {Extraction.PdfTextExtractor.MinTextChars} letters or digits in their text layer are not indexed (no OCR).");
         builder.AppendLine();
         builder.AppendLine($"Count: {skipped.Count}");
         builder.AppendLine();

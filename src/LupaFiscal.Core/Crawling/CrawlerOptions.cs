@@ -5,7 +5,7 @@ public sealed class CrawlerOptions
     public const string ProductToken = "lupafiscal";
 
     public const string DefaultUserAgent =
-        "LupaFiscal/0.1 (+https://github.com/nunomarques97/lupa-fiscal; open-source research crawler)";
+        "LupaFiscal/0.2 (+https://github.com/nunomarques97/lupa-fiscal; open-source research crawler)";
 
     public static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(1);
 

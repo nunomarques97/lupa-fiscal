@@ -392,4 +392,236 @@ public sealed class CorpusCrawlerTests : IDisposable
         Assert.Equal(2, summary.Counts.Pending);
         Assert.False(summary.Counts.IsComplete);
     }
+
+    // Multi-tax runs: CIRS (PIV_1, PIV_2) then CIVA (PIV_1 with other content, PIV_95001 byte-identical
+    // to CIRS PIV_2, PIV_95003 scanned).
+    private static readonly TaxSource Civa = TaxSource.Find("CIVA")!;
+    private static readonly string CivaListingUrl = Civa.ListingUri.AbsoluteUri;
+    private static readonly byte[] SharedPdf = TestPdfs.WithText([.. TestPdfs.RulingLines, "Conclusão: a mesma ficha consta de duas listas."]);
+    private static readonly byte[] IvaPdf = TestPdfs.WithText(
+        "INFORMAÇÃO VINCULATIVA",
+        "Diploma: CIVA",
+        "Assunto: Isenção de IVA na locação de imóveis",
+        "Processo: 90002, com despacho de 2024-10-28, da Diretora de Serviços",
+        "A requerente pretende saber se o arrendamento de um armazém está isento de imposto.",
+        "A locação de imóveis está isenta, salvo renúncia à isenção nos termos da lei aplicável.");
+
+    private string CivaPdf(string fileName) => TestListing.PdfUrlFor(Civa, fileName);
+
+    private FakeHandler TwoTaxSite(FakeClock clock)
+    {
+        var handler = Site(clock, TestListing.ForNumbers(1, 2), 1);
+        handler.Always(TestListing.PdfUrl("PIV_2.pdf"), () => FakeHandler.Bytes(SharedPdf));
+        handler.Always(CivaListingUrl, () => FakeHandler.Text(TestListing.ForNumbers(Civa, 1, 95001, 95003), "application/json"));
+        handler.Always(CivaPdf("PIV_1.pdf"), () => FakeHandler.Bytes(IvaPdf));
+        handler.Always(CivaPdf("PIV_95001.pdf"), () => FakeHandler.Bytes(SharedPdf));
+        handler.Always(CivaPdf("PIV_95003.pdf"), () => FakeHandler.Bytes(TestPdfs.ImageOnly()));
+        return handler;
+    }
+
+    private CorpusStore CivaStore => new(_temp.Path, Civa);
+
+    private async Task<MultiTaxCrawlSummary> CrawlAll(FakeHandler handler, FakeClock clock, CrawlRunOptions? run = null,
+        CancellationToken cancellationToken = default, CrawlerOptions? options = null, TextWriter? log = null)
+    {
+        options ??= new CrawlerOptions();
+        log ??= TextWriter.Null;
+        using var client = new PoliteHttpClient(handler, options, clock, log);
+        var crawler = new MultiTaxCrawler(client, [_store, CivaStore], new PdfTextExtractor(), options, _ => log);
+        return await crawler.RunAsync(run ?? new CrawlRunOptions(), cancellationToken);
+    }
+
+    [Fact]
+    public async Task AllCrawlsEveryTaxInOrderThroughOnePoliteClient()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+        var options = new CrawlerOptions { RequestInterval = TimeSpan.FromSeconds(2) };
+
+        var summary = await CrawlAll(handler, clock, options: options);
+
+        Assert.True(summary.IsComplete);
+        Assert.Equal(
+            [
+                TestListing.RobotsUrl, ListingUrl, TestListing.PdfUrl("PIV_1.pdf"), TestListing.PdfUrl("PIV_2.pdf"),
+                TestListing.RobotsUrl, CivaListingUrl, CivaPdf("PIV_1.pdf"), CivaPdf("PIV_95001.pdf"), CivaPdf("PIV_95003.pdf"),
+            ],
+            handler.Requests.Select(r => r.Url.AbsoluteUri));
+        // One request at a time, the full interval apart, also from the last CIRS PDF to the CIVA robots.txt.
+        for (var i = 1; i < handler.Requests.Count; i++)
+        {
+            Assert.True(handler.Requests[i].Start - handler.Requests[i - 1].Start >= options.RequestInterval + handler.TransferTime,
+                $"request {i} started too early");
+        }
+        Assert.All(handler.Requests, r => Assert.StartsWith("LupaFiscal/0.2 (+https://github.com/", r.UserAgent));
+        Assert.Equal([4, 5], summary.Taxes.Select(t => t.Summary!.Requests));
+        Assert.Equal(9, summary.Requests);
+        Assert.Equal(5, summary.Downloads);
+
+        var cirs = _store.LoadManifest()!.Rulings.ToDictionary(r => r.Id);
+        var civa = CivaStore.LoadManifest()!.Rulings.ToDictionary(r => r.Id);
+        Assert.Equal(["piv_1", "piv_2"], cirs.Keys.Order());
+        Assert.Equal(["civa-piv_1", "civa-piv_95001", "civa-piv_95003"], civa.Keys.Order());
+        Assert.All(civa.Values, r => Assert.Equal("CIVA", r.Tax));
+        Assert.Equal(Path.Combine(_temp.Path, "civa"), CivaStore.TaxDirectory);
+
+        // Byte-identical PDFs share their hash; the same file name with other content does not.
+        Assert.Equal(cirs["piv_2"].PdfSha256, civa["civa-piv_95001"].PdfSha256);
+        Assert.NotEqual(cirs["piv_1"].PdfSha256, civa["civa-piv_1"].PdfSha256);
+        Assert.Contains(TestPdfs.Expect("armazém"), File.ReadAllText(CivaStore.TextPath("civa-piv_1")), StringComparison.Ordinal);
+        Assert.DoesNotContain(TestPdfs.Expect("armazém"), File.ReadAllText(_store.TextPath("piv_1")), StringComparison.Ordinal);
+
+        // The scanned PDF is listed in its own tax's report and has no text.
+        Assert.Equal(new CorpusCounts(3, 0, 0, 2, 1, 0, 0), summary.Taxes[1].Counts);
+        Assert.Equal(RulingState.ScannedSkipped, civa["civa-piv_95003"].State);
+        Assert.False(File.Exists(CivaStore.TextPath("civa-piv_95003")));
+        Assert.Contains("| civa-piv_95003 |", File.ReadAllText(CivaStore.ScannedReportPath), StringComparison.Ordinal);
+        Assert.Contains("Count: 0", File.ReadAllText(_store.ScannedReportPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RobotsTxtIsFetchedAgainAtTheStartOfEachTax()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+        handler.Then(TestListing.RobotsUrl, () => FakeHandler.Status(HttpStatusCode.NotFound));
+        handler.Then(TestListing.RobotsUrl, () => FakeHandler.Text($"User-agent: *\nDisallow: {TestListing.DocumentsPathFor(Civa)}"));
+
+        var summary = await CrawlAll(handler, clock);
+
+        Assert.Equal(2, handler.CountFor(TestListing.RobotsUrl));
+        Assert.Equal(2, summary.Taxes[0].Counts!.Extracted);
+        Assert.Equal(3, summary.Taxes[1].Counts!.Failed);
+        Assert.Equal(0, handler.Requests.Count(r => r.Url.AbsoluteUri.StartsWith(CivaPdf(""), StringComparison.Ordinal)));
+        Assert.All(CivaStore.LoadManifest()!.Rulings, r => Assert.Contains("robots.txt", r.Reason, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task MaxDownloadsAppliesAcrossTheWholeAllRun()
+    {
+        var clock = new FakeClock();
+        var first = TwoTaxSite(clock);
+        var summary = await CrawlAll(first, clock, new CrawlRunOptions { MaxDownloads = 3 });
+
+        Assert.Equal(3, PdfRequests(first));
+        Assert.Equal(3, summary.Downloads);
+        Assert.Equal(2, summary.Taxes[0].Counts!.Extracted);
+        Assert.Equal(2, summary.Taxes[1].Counts!.Pending);
+        Assert.False(summary.IsComplete);
+
+        var second = TwoTaxSite(clock);
+        summary = await CrawlAll(second, clock, new CrawlRunOptions { MaxDownloads = 5 });
+
+        Assert.Equal(2, PdfRequests(second));
+        Assert.True(summary.IsComplete);
+    }
+
+    [Fact]
+    public async Task TaxesAfterTheDownloadBudgetIsUsedAreNotRequested()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+
+        var summary = await CrawlAll(handler, clock, new CrawlRunOptions { MaxDownloads = 2 });
+
+        Assert.Equal(0, handler.CountFor(CivaListingUrl));
+        Assert.Equal(1, handler.CountFor(TestListing.RobotsUrl));
+        Assert.True(summary.Taxes[0].IsComplete);
+        Assert.Null(summary.Taxes[1].Summary);
+        Assert.Null(summary.Taxes[1].Counts);
+        Assert.Contains("budget", summary.Taxes[1].Skipped, StringComparison.Ordinal);
+        Assert.False(summary.IsComplete);
+        Assert.False(summary.Aborted);
+    }
+
+    [Fact]
+    public async Task AllRunResumesAfterAnInterruptionInTheSecondTax()
+    {
+        var clock = new FakeClock();
+        var first = TwoTaxSite(clock);
+        using var interruption = new CancellationTokenSource();
+        first.OnRequest = url =>
+        {
+            if (url.AbsoluteUri == CivaPdf("PIV_95001.pdf")) interruption.Cancel();
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CrawlAll(first, clock, cancellationToken: interruption.Token));
+
+        Assert.True(CorpusCounts.From(_store.LoadManifest()!).IsComplete);
+        var civa = CorpusCounts.From(CivaStore.LoadManifest()!);
+        Assert.Equal(1, civa.Extracted);
+        Assert.Equal(2, civa.Pending);
+
+        var second = TwoTaxSite(clock);
+        var summary = await CrawlAll(second, clock);
+
+        Assert.True(summary.IsComplete);
+        Assert.Equal(0, second.CountFor(TestListing.PdfUrl("PIV_1.pdf")));
+        Assert.Equal(0, second.CountFor(TestListing.PdfUrl("PIV_2.pdf")));
+        Assert.Equal(0, second.CountFor(CivaPdf("PIV_1.pdf")));
+        Assert.Equal(2, PdfRequests(second));
+    }
+
+    [Fact]
+    public async Task ThrottledDownloadInTheSecondTaxBacksOffAndHonoursRetryAfter()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+        handler.Then(CivaPdf("PIV_1.pdf"), () => FakeHandler.Status(HttpStatusCode.TooManyRequests, TimeSpan.FromSeconds(30)));
+        handler.Then(CivaPdf("PIV_1.pdf"), () => FakeHandler.Status(HttpStatusCode.ServiceUnavailable));
+        var options = new CrawlerOptions { MaxRetries = 2, InitialBackoff = TimeSpan.FromSeconds(5) };
+
+        var summary = await CrawlAll(handler, clock, options: options);
+
+        Assert.True(summary.IsComplete);
+        Assert.Equal(3, handler.CountFor(CivaPdf("PIV_1.pdf")));
+        Assert.Contains(TimeSpan.FromSeconds(30), clock.Delays);
+        Assert.Contains(TimeSpan.FromSeconds(10), clock.Delays);
+        Assert.Equal(RulingState.Extracted, CivaStore.LoadManifest()!.Rulings.Single(r => r.Id == "civa-piv_1").State);
+    }
+
+    [Fact]
+    public async Task RepeatedFailuresStopTheAllRunAndLeaveRulingsPending()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+        handler.Always(ListingUrl, () => FakeHandler.Text(TestListing.ForNumbers(1, 2, 3, 4), "application/json"));
+        foreach (var number in new[] { 1, 2, 3, 4 })
+        {
+            handler.Always(TestListing.PdfUrl($"PIV_{number}.pdf"), () => FakeHandler.Status(HttpStatusCode.BadGateway));
+        }
+
+        var summary = await CrawlAll(handler, clock, options: new CrawlerOptions { MaxRetries = 1 });
+
+        Assert.True(summary.Aborted);
+        Assert.StartsWith("CIRS: the site looks unavailable", summary.AbortReason, StringComparison.Ordinal);
+        Assert.Equal(4, summary.Taxes[0].Counts!.Pending);
+        Assert.Equal(0, handler.CountFor(CivaListingUrl));
+        Assert.Equal(1, handler.CountFor(TestListing.RobotsUrl));
+        Assert.Contains("earlier tax", summary.Taxes[1].Skipped, StringComparison.Ordinal);
+        Assert.False(summary.IsComplete);
+    }
+
+    [Fact]
+    public async Task ListingLinksLeavingTheHostUsingHttpOrNotPdfsAreRejectedLoggedAndNeverRequested()
+    {
+        var clock = new FakeClock();
+        var handler = TwoTaxSite(clock);
+        handler.Always(CivaListingUrl, () => FakeHandler.Text(TestListing.ReadFixture("listing-civa.json"), "application/json"));
+        var log = new StringWriter();
+
+        var summary = await CrawlAll(handler, clock, log: log);
+
+        Assert.Equal(4, summary.Taxes[1].Counts!.Listed);
+        var output = log.ToString();
+        Assert.Contains("Listing entry skipped: row 5: PDF link uses http, not https", output, StringComparison.Ordinal);
+        Assert.Contains("Listing entry skipped: row 6: PDF link leaves the allowlisted host", output, StringComparison.Ordinal);
+        Assert.Contains("Listing entry skipped: row 7: link is not a PDF", output, StringComparison.Ordinal);
+        Assert.All(handler.Requests, r =>
+        {
+            Assert.Equal("https", r.Url.Scheme);
+            Assert.Equal("info.portaldasfinancas.gov.pt", r.Url.Host);
+            Assert.DoesNotContain(".docx", r.Url.AbsolutePath, StringComparison.Ordinal);
+        });
+    }
 }

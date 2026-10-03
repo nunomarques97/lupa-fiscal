@@ -8,37 +8,56 @@
 >
 > **Not tax advice.** Results are excerpts to help you find the right ruling. Always read the official ruling in full, and ask a qualified professional about your own situation.
 
-![Lupa Fiscal on a desktop: the question "Posso deduzir as despesas de educação dos meus filhos no IRS?" returns rulings on education expenses and dependants, each with its process number, article, date, highlighted passage and a link to the official PDF](docs/evidence/results-1440.png)
+![Lupa Fiscal on a desktop: the question "Doação de um imóvel a um filho: que impostos pago?" returns rulings from several taxes (IMT, IRS), each with its process number, tax, article, date, highlighted passage and a link to the official PDF](docs/evidence/taxes-1440.png)
 
-- **Never invents an answer.** Every result is a passage quoted from a published ruling, with its process number, article and date, and a link to the PDF on the official site.
+- **Never invents an answer.** Every result is a passage quoted from a published ruling, with its process number, tax, article and date, and a link to the PDF on the official site.
+- **Every tax.** All 13 libraries of binding rulings on the official site, from IRS and IVA to the extraordinary contributions.
 - **Free and open source.** MIT licence. No account, API key or paid service.
 - **Local.** The search runs on your own computer. Your questions are never sent anywhere.
-- **Measured.** On a fixed set of 50 everyday questions, a matching ruling is in the first 10 results for 45 of them ([report](docs/eval/report.md)).
+- **Measured.** On two fixed sets of everyday questions, a matching ruling is in the first 10 results for 43 of 50 IRS questions and 20 of 24 questions on other taxes ([IRS report](docs/eval/report.md), [other taxes](docs/eval/taxes/report.md)).
 
-Version 0.1 covers the rulings on personal income tax (CIRS): 1189 rulings, as listed on 2 October 2026.
+Version 0.2 covers every tax with published binding rulings: 5998 listed rulings (5790 distinct documents), as listed on 2 October 2026.
+
+| Code | Covers | Rulings listed |
+|---|---|---|
+| CIVA | IVA (value added tax) | 2993 |
+| CIRS | IRS (personal income tax) | 1189 |
+| CIRC | IRC (corporate income tax) | 859 |
+| EBF | Estatuto dos Benefícios Fiscais (tax benefits) | 245 |
+| CIMT | IMT (property transfer tax) | 221 |
+| SELO | Imposto do Selo (stamp duty) | 200 |
+| DSRI | Relações internacionais (tax treaties and cross-border cases) | 120 |
+| CIMI | IMI (municipal property tax) | 96 |
+| RITI | Regime do IVA nas Transações Intracomunitárias (intra-EU VAT) | 43 |
+| CIUC | IUC (vehicle tax) | 21 |
+| LGT | Lei Geral Tributária (general tax law) | 6 |
+| CESE | Contribuição extraordinária sobre o setor energético | 3 |
+| CSB | Contribuição sobre o setor bancário | 2 |
+
+Some rulings are published in two libraries (for example EBF and IRS). When the PDF is byte-identical, it is indexed once and shown under the first of its taxes in the order CIRS, CIRC, DSRI, EBF, CIMI, CIMT, CIUC, SELO, CIVA, RITI, LGT, CESE, CSB, and it can still be found by filtering on any of them.
 
 ## Em português
 
-O Lupa Fiscal é uma ferramenta gratuita e de código aberto para pesquisar as informações vinculativas publicadas pela Autoridade Tributária e Aduaneira. Basta escrever a pergunta em linguagem corrente para obter as informações vinculativas mais próximas, com a passagem relevante, o número do processo, o artigo, a data e a ligação para o PDF oficial. A ferramenta nunca redige respostas próprias: mostra apenas excertos de informações vinculativas publicadas, sempre com a fonte. A versão 0.1 abrange o Código do IRS e funciona inteiramente no seu computador, sem conta nem custos. Não constitui aconselhamento fiscal nem tem qualquer ligação à Autoridade Tributária e Aduaneira: leia sempre a informação vinculativa oficial. As instruções de instalação, abaixo, estão em inglês.
+O Lupa Fiscal é uma ferramenta gratuita e de código aberto para pesquisar as informações vinculativas publicadas pela Autoridade Tributária e Aduaneira. Basta escrever a pergunta em linguagem corrente para obter as informações vinculativas mais próximas, com a passagem relevante, o número do processo, o artigo, a data e a ligação para o PDF oficial. A ferramenta nunca redige respostas próprias: mostra apenas excertos de informações vinculativas publicadas, sempre com a fonte. A versão 0.2 abrange todos os impostos com informações vinculativas publicadas (IRS, IRC, IVA, IMI, IMT, IUC, Imposto do Selo, Estatuto dos Benefícios Fiscais, Lei Geral Tributária e outros) e funciona inteiramente no seu computador, sem conta nem custos. Não constitui aconselhamento fiscal nem tem qualquer ligação à Autoridade Tributária e Aduaneira: leia sempre a informação vinculativa oficial. As instruções de instalação, abaixo, estão em inglês.
 
 ## Screens
 
 <p>
-  <img src="docs/evidence/results-390.png" alt="Results on a phone: each ruling shows its process number, article, date and highlighted passage" width="260">
-  <img src="docs/evidence/filters-sheet-390.png" alt="Filter sheet on a phone, filtering by tax, article and publication year" width="260">
+  <img src="docs/evidence/results-390.png" alt="Results on a phone: each ruling shows its process number, tax, article, date and highlighted passage" width="260">
+  <img src="docs/evidence/tax-filter-sheet-390.png" alt="Filter sheet on a phone: the tax is chosen first, then an article of that tax" width="260">
   <img src="docs/evidence/empty-390.png" alt="No results message on a phone when the chosen filters match no ruling" width="260">
 </p>
 
-The interface is in European Portuguese and works on desktop and phone. Every screen state (first visit, loading, results, filters, no results, error, validation) at 1440 and 390 px wide is in [docs/evidence/](docs/evidence/).
+The interface is in European Portuguese and works on desktop and phone. The article filter lists only the articles of the chosen tax, because article numbers mean different things in different codes. Every screen state (first visit, loading, results, results across taxes, tax and article filters, no results, error, validation) at 1440 and 390 px wide is in [docs/evidence/](docs/evidence/).
 
 ## Quick start
 
-You need Windows 10 or 11, the [.NET SDK 10](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 22 or 24, an internet connection for the first setup and about 1 GB of free disk space for the data, plus room for the .NET and npm packages.
+You need Windows 10 or 11, the [.NET SDK 10](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 22 or 24, an internet connection for the first setup and about 1.5 GB of free disk space for the data (about 700 MB of rulings, a 215 MB index and the 470 MB model), plus room for the .NET and npm packages.
 
 ```
 git clone https://github.com/nunomarques97/lupa-fiscal.git
 cd lupa-fiscal
-dotnet run --project src/LupaFiscal.Cli -- crawl --tax CIRS
+dotnet run --project src/LupaFiscal.Cli -- crawl --all
 dotnet run --project src/LupaFiscal.Cli -- index
 npm --prefix web ci
 npm --prefix web run build
@@ -49,9 +68,9 @@ Then open http://localhost:4401 and ask a question.
 
 What to expect:
 
-- `crawl` downloads the 1189 CIRS rulings at one request per second, so it takes about 20 to 25 minutes. You can stop it at any time; running it again resumes where it stopped.
-- `index` first downloads the embedding model (about 470 MB, checked against its SHA-256), then indexes the rulings in about 5 minutes on a CPU.
-- The API loads the model and the index in about 2 seconds; after that, each search takes a few tens of milliseconds.
+- `crawl --all` downloads the 5998 listed rulings of the 13 taxes at one request per second, so it takes about 1 hour 50 minutes. You can stop it at any time; running it again resumes where it stopped. To start smaller, `crawl --tax CIRS` downloads only the 1189 IRS rulings in about 20 to 25 minutes.
+- `index` first downloads the embedding model (about 470 MB, checked against its SHA-256), then indexes the rulings in about 40 minutes on a CPU (about 5 minutes for CIRS alone). Running it again only processes what changed.
+- The API loads the model and the index in about 3 seconds; after that, each search takes about 100 milliseconds.
 
 The rulings are downloaded once and kept on your computer, in `data/`.
 
@@ -66,14 +85,14 @@ dotnet build LupaFiscal.slnx
 dotnet test LupaFiscal.slnx
 ```
 
-**1. Download the CIRS rulings** and check that none is left pending:
+**1. Download the rulings** of every tax and check that none is left pending:
 
 ```
-dotnet run --project src/LupaFiscal.Cli -- crawl --tax CIRS
-dotnet run --project src/LupaFiscal.Cli -- corpus-status --tax CIRS
+dotnet run --project src/LupaFiscal.Cli -- crawl --all
+dotnet run --project src/LupaFiscal.Cli -- corpus-status --all
 ```
 
-`crawl` options: `--retry-failed`, `--use-cached-listing`, `--interval-seconds N` (at least 1), `--max-retries N`, `--max-downloads N`. `corpus-status` exits 0 only when no listed ruling is pending; add `--list-failed` to see the reasons for failures. Scanned PDFs without a text layer are listed and skipped (no OCR in v0.1; no CIRS ruling needed it).
+`--all` takes the 13 taxes one after another through one polite client; use `--tax CODE` (for example `--tax CIVA`) for a single tax. `crawl` options: `--retry-failed`, `--use-cached-listing`, `--interval-seconds N` (at least 1), `--max-retries N`, `--max-downloads N` (over the whole run with `--all`, handy for crawling in batches). `corpus-status` exits 0 only when no listed ruling is pending; add `--list-failed` to see the reasons for failures. `extract --all` (or `--tax CODE`) extracts the text of the cached PDFs again, offline. Scanned PDFs without a text layer are listed and skipped (no OCR; no ruling needed it so far).
 
 **2. Download the embedding model** (optional: `index` does it on its first run):
 
@@ -81,7 +100,7 @@ dotnet run --project src/LupaFiscal.Cli -- corpus-status --tax CIRS
 dotnet run --project src/LupaFiscal.Cli -- model download
 ```
 
-**3. Build the index** and check it (running `index` again only processes what changed):
+**3. Build the index** of every crawled tax and check it (running `index` again only processes what changed; `--tax CODE` limits either command to one tax):
 
 ```
 dotnet run --project src/LupaFiscal.Cli -- index
@@ -94,7 +113,7 @@ dotnet run --project src/LupaFiscal.Cli -- index-status
 dotnet run --project src/LupaFiscal.Cli -- search "Posso deduzir as despesas de educação dos meus filhos no IRS?"
 ```
 
-Options: `--tax CIRS`, `--article 78-D`, `--year 2024`, `--limit N` (1 to 50, default 10), `--mode hybrid|keyword|vector` (default hybrid).
+Options: `--tax CIRS`, `--article 78-D` (only together with `--tax`, since article numbers belong to one code), `--year 2024`, `--limit N` (1 to 50, default 10), `--mode hybrid|keyword|vector` (default hybrid).
 
 **5. Run the web interface:**
 
@@ -106,25 +125,28 @@ dotnet run --project src/LupaFiscal.Api
 
 Open http://localhost:4401. The API listens only on this computer (loopback) and also serves the built interface. Its endpoints:
 
-- `GET /api/search?q=...&tax=&article=&year=&limit=` (q required, at most 500 characters; limit 1 to 50, default 10; invalid input returns a 400 problem response)
-- `GET /api/facets` (rulings per tax, article and publication year)
+- `GET /api/search?q=...&tax=&article=&year=&limit=` (q required, at most 500 characters; article only with tax; limit 1 to 50, default 10; invalid input returns a 400 problem response)
+- `GET /api/facets` (rulings per tax, per article within each tax as `{tax, value, count}`, and per publication year)
 - `GET /api/health`
 
 To work on the interface with live reload, keep the API running, run `npm --prefix web start` and open http://localhost:4400.
 
-**Measure retrieval quality and speed** (needs the index):
+**Measure retrieval quality and speed** (needs the index), on the IRS set and on the set for other taxes:
 
 ```
-dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.70
+dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.85
+dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions-taxes.json --out docs/eval/taxes/report.md
 dotnet run --project src/LupaFiscal.Cli -- bench --questions eval/questions.json --max-ms 1000
 ```
+
+They print their numbers and change no file. Add `--record` to write them to the report and its history (`--label` and `--note` name an eval iteration).
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    A["Public CIRS listing and ruling PDFs"] -->|"crawl, 1 request/s"| B["Local cache in data/"]
-    B -->|"extract text"| C["Sections: request, facts, legal framework, conclusion"]
+    A["Public listings of 13 taxes and ruling PDFs"] -->|"crawl, 1 request/s"| B["Local cache in data/"]
+    B -->|"extract text, merge identical PDFs"| C["Sections: request, facts, legal framework, conclusion"]
     C -->|"chunk"| D["Overlapping passages"]
     D -->|"embed locally"| E[("SQLite: FTS5 keyword index and vectors")]
     Q["Your question"] --> K["Keyword ranking (BM25)"]
@@ -137,47 +159,49 @@ flowchart LR
     API --> UI["Web interface"]
 ```
 
-1. A polite crawler reads the public CIRS listing and downloads each ruling PDF once: it reads robots.txt first, makes at most one request per second with a descriptive User-Agent, and keeps everything in a local cache.
-2. The text of each PDF is extracted.
+1. A polite crawler reads the public listing of each of the 13 taxes and downloads each ruling PDF once: it reads robots.txt first, makes at most one request per second with a descriptive User-Agent, and keeps everything in a local cache.
+2. The text of each PDF is extracted. A PDF published byte for byte in two taxes becomes one ruling that both tax filters find.
 3. Each ruling is cleaned of page headers and footers, split into its sections (request, facts, legal framework, conclusion) and then into overlapping passages of at most 512 model tokens.
 4. Every passage gets a vector from a multilingual model that runs locally (ONNX Runtime, CPU), and goes into a keyword index (SQLite FTS5).
 5. A question is searched both ways: by keywords (BM25) and by meaning (vector similarity). The two rankings are merged with reciprocal rank fusion, keeping the best passage of each ruling.
 
 Design decisions, rejected alternatives and trade-offs: [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md).
 
-## Results on CIRS
+## Results
 
 | | |
 |---|---|
-| Rulings indexed | 1189 (all listed CIRS rulings, none skipped) |
-| Passages | 5938 |
-| Eval set | 50 plain-Portuguese questions over 29 CIRS articles, with 197 expected rulings, frozen before any measurement ([how they were built](eval/README.md)) |
+| Rulings indexed | 5790 distinct rulings from 5998 listings in 13 taxes (none skipped; 208 identical PDFs published in two taxes counted once) |
+| Passages | 34505 |
+| Index size | 215 MB, plus about 700 MB of cached rulings |
+| Build time on a CPU | crawl about 1 hour 50 minutes at one request per second, index about 40 minutes |
+| Eval sets | 50 plain-Portuguese IRS questions over 29 CIRS articles (197 expected rulings), and 24 questions over 7 other taxes (IVA, IRC, IMT, Imposto do Selo, IMI, EBF, IUC; 90 expected rulings), each frozen before any measurement ([how they were built](eval/README.md)) |
 
-| Search mode | recall@10 | MRR@10 |
-|---|---|---|
-| Keyword only (BM25) | 0.800 | 0.578 |
-| Vector only | 0.860 | 0.613 |
-| Hybrid (RRF) | **0.900** | **0.631** |
+| Search mode | IRS recall@10 | IRS MRR@10 | Other taxes recall@10 | Other taxes MRR@10 |
+|---|---|---|---|---|
+| Keyword only (BM25) | 0.740 | 0.562 | 0.708 | 0.484 |
+| Vector only | 0.860 | 0.595 | 0.833 | 0.598 |
+| Hybrid (RRF) | **0.860** | **0.632** | **0.833** | **0.645** |
 
-recall@10 is the share of questions with at least one expected ruling in the first 10 results; MRR@10 rewards finding it near the top. Hybrid search finds a matching ruling for 45 of the 50 questions; the 5 misses are listed in the report.
+recall@10 is the share of questions with at least one expected ruling in the first 10 results; MRR@10 rewards finding it near the top. Hybrid search finds a matching ruling for 43 of the 50 IRS questions and 20 of the 24 other questions; the misses are listed in the reports. On the IRS-only index of version 0.1 the IRS set scored 0.900 (MRR@10 0.631); the full index has almost five times as many rulings to rank.
 
-Latency of hybrid search over the 50 questions, including the question's embedding, on a CPU: **32 ms** median (p50), **40 ms** p95, **53 ms** maximum.
+Latency of hybrid search over the 50 IRS questions on the full index, including the question's embedding, on a CPU: **77 ms** median (p50), **120 ms** p95, **131 ms** maximum.
 
-Full report and method: [docs/eval/report.md](docs/eval/report.md).
+Full reports and method: [docs/eval/report.md](docs/eval/report.md) and [docs/eval/taxes/report.md](docs/eval/taxes/report.md).
 
 ## FAQ
 
 **Why does it not write answers?**
-A generated answer can sound right and still be wrong. In v0.1 every result is a passage quoted from a published ruling, with the source one click away, so nothing is invented and you can always check the original.
+A generated answer can sound right and still be wrong. Every result is a passage quoted from a published ruling, with the source one click away, so nothing is invented and you can always check the original.
 
 **Why local?**
 No server, account or paid service is needed, and your questions stay on your computer. The network is used only to download the rulings from the official site and the model from Hugging Face; searching never leaves your machine.
 
 **Why hybrid search?**
-Keyword search is good at exact legal terms and article numbers; vector search is good at everyday wording. Combined, they find more than either alone (recall@10 0.900 against 0.800 and 0.860).
+Keyword search is good at exact legal terms and article numbers; vector search is good at everyday wording. Combined, they rank the right ruling higher than either alone (MRR@10 0.632 against 0.562 and 0.595 on the IRS set, 0.645 against 0.484 and 0.598 on the other taxes).
 
 **Which taxes are covered?**
-Version 0.1 covers the rulings listed under CIRS (personal income tax). Some of them concern another law, such as the Estatuto dos Benefícios Fiscais or a State Budget law. Every tax is planned for v0.2.
+Every library of binding rulings on the official site: the 13 in the table at the top. Some rulings concern another law than their library's code, such as a State Budget law or a tax treaty; they keep it in their citation.
 
 **Is it tax advice?**
 No. It helps you find relevant rulings. A ruling answers the specific situation it was asked about; read it in full and ask a qualified professional about your own case.
@@ -208,8 +232,9 @@ The interface uses the fonts already installed on your system; no font files are
 
 ## Roadmap
 
-- v0.1 (this version): CIRS rulings, local search, no generated answers.
-- v0.2: every tax, plus answers written only from cited rulings, each statement linked to its source.
+- v0.1: CIRS rulings, local search, no generated answers.
+- v0.2 part 1 (this version): every tax with binding rulings, still no generated answers.
+- v0.2 part 2: answers written only from cited rulings, each statement linked to its source.
 - v1: public hosting.
 
 ## Contributing

@@ -28,9 +28,9 @@ Every passage is shown with its source citation. The citation (process number, a
 
 ### 390 px reorganisation
 
-- The rail is removed. A **Filtros** button (with the number of filters besides the tax, e.g. "Filtros (2)") and a one-line summary of the active filters ("IRS · artigo 99.º-F · 2006") sit under the search box. The button opens a bottom sheet (modal dialog) with the same three selects and **Limpar** / **Aplicar filtros**.
+- The rail is removed. A **Filtros** button (with the number of active filters, e.g. "Filtros (2)") and a one-line summary of the active filters ("IRS · artigo 99.º-F · 2006") sit under the search box. The button opens a bottom sheet (modal dialog) with the same three selects and **Limpar** / **Aplicar filtros**.
 - The search button goes under the input at full width (48 px tall).
-- The citation column becomes two lines above the subject: "1 Processo 15223" then "Art. 13.º CIRS · 15/04/2020 · Secção: Texto". It stays identifiable; it is never hidden.
+- The citation column becomes two lines above the subject: "1 Processo 15223" then "IRS · Art. 13.º · 15/04/2020 · Secção: Texto". It stays identifiable; it is never hidden.
 - The tagline is hidden; the notice keeps its first two sentences and the independence statement moves to the footer only.
 - Passage excerpt target 240 characters (360 on desktop), serif 17 px.
 
@@ -82,8 +82,8 @@ All text pairs pass AA (4.5:1) and AAA for body text except `--ink-3`, which pas
 ## Components
 
 - **Search box**: visible label "A sua pergunta" above a search input (52 px tall) and a dark **Pesquisar** button. Enter submits. `role="search"` on the form.
-- **Filter controls**: native `<select>` elements with visible labels: **Imposto** (shows "IRS" for CIRS), **Artigo** ("Todos" then each article as "13.º", "78.º-D"), **Ano de publicação** ("Todos" then years, newest first). Each option shows the facet count in parentheses. **Limpar filtros** is a text button. Values come from `/api/facets`.
-- **Result item** (`<li>` in an `<ol>`): citation column with rank, "Processo N", "Art. 13.º CIRS", date as dd/mm/aaaa in `<time datetime>`, and "Secção: …" (header Identificação, request Pedido, facts Factos, legal-framework Enquadramento, conclusion Conclusão, content Texto); subject as `<h3>`; passage in a `<blockquote cite>`; actions **Abrir PDF oficial** (`target="_blank" rel="noopener noreferrer"`, with hidden text "(abre num novo separador)") and **Ler passagem completa** (toggle with `aria-expanded`, shows the whole passage in place).
+- **Filter controls**: native `<select>` elements with visible labels: **Imposto** ("Todos" then every indexed tax by its name, sorted: "IRS" for CIRS, "IVA" for CIVA, "Imposto do Selo" for SELO; an unknown code is shown as it is), **Artigo** (disabled, with the hint "Escolha primeiro um imposto." under it, until a tax is chosen; then "Todos" and only that tax's articles, as "13.º", "78.º-D" or as published, such as "Verba 1.12"; changing or clearing the tax clears it), **Ano de publicação** ("Todos" then years, newest first). Each option shows the facet count in parentheses. **Limpar filtros** is a text button. Values come from `/api/facets`.
+- **Result item** (`<li>` in an `<ol>`): citation column with rank, "Processo N", the tax ("IRS"), the article ("Art. 13.º", or as published), date as dd/mm/aaaa in `<time datetime>`, and "Secção: …" (header Identificação, request Pedido, facts Factos, legal-framework Enquadramento, conclusion Conclusão, content Texto); subject as `<h3>`; passage in a `<blockquote cite>`; actions **Abrir PDF oficial** (`target="_blank" rel="noopener noreferrer"`, with hidden text "(abre num novo separador)") and **Ler passagem completa** (toggle with `aria-expanded`, shows the whole passage in place).
 - **Passage excerpt**: PDF line breaks become spaces one for one, so highlight offsets stay valid. The excerpt starts at the beginning of the passage (which usually states the question) unless a later window holds at least two more highlights, is snapped to word boundaries, and shows "…" where text is cut. Reference implementation: `docs/ui/mock-common.js`.
 - **Highlight**: `<mark>` built from the API's `{start, length}` offsets as text segments (never innerHTML), merged when they overlap. Marker yellow background, text colour unchanged, 2 px radius.
 - **Notice**: a full-width band under the header, always the first content after the wordmark: "**Não é aconselhamento fiscal.** Leia sempre a informação vinculativa oficial." plus, on desktop, "Projeto independente, sem ligação à Autoridade Tributária e Aduaneira." It is visible without scrolling at both widths and never dismissible.
@@ -114,5 +114,5 @@ European Portuguese, no em-dashes, nothing about how the product was built. Neve
 ## Known weaknesses
 
 - At 390 px a long question is clipped inside the single-line input; the full text stays editable and the results show their own context.
-- The article select has 83 options. Acceptable with native selects in v0.1; a searchable list would be a later change.
+- The article select of a tax has up to about 160 options (IVA). Acceptable with native selects; a searchable list would be a later change.
 - Subjects come from the rulings and can contain en-dashes; they are quoted as published.

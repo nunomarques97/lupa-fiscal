@@ -9,16 +9,16 @@ Open-source (MIT) semantic search over the public binding rulings (informações
 Run from the repository root. Data goes to `data/` (override with `--data-dir` or `LUPAFISCAL_DATA_DIR`).
 - Build: `dotnet build LupaFiscal.slnx`
 - Test (offline, synthetic fixtures only): `dotnet test LupaFiscal.slnx`
-- Crawl (polite, resumable; about 25 min for CIRS): `dotnet run --project src/LupaFiscal.Cli -- crawl --tax CIRS` (options: `--retry-failed`, `--use-cached-listing`, `--interval-seconds N` with N >= 1, `--max-retries N`, `--max-downloads N`)
-- Re-extract text from cached PDFs (offline, after an extraction change): `dotnet run --project src/LupaFiscal.Cli -- extract --tax CIRS`
-- Corpus status (exit 0 only when no listed ruling is pending): `dotnet run --project src/LupaFiscal.Cli -- corpus-status --tax CIRS` (add `--list-failed` for reasons)
+- Crawl (polite, resumable; about 110 min for all 13 taxes from scratch, 25 min for CIRS alone): `dotnet run --project src/LupaFiscal.Cli -- crawl --all` or `crawl --tax CIRS` (options: `--retry-failed`, `--use-cached-listing`, `--interval-seconds N` with N >= 1, `--max-retries N`, `--max-downloads N` over the whole run, for batches). Supported taxes and their listings: `docs/research/sources.md`
+- Re-extract text from cached PDFs (offline, after an extraction change): `dotnet run --project src/LupaFiscal.Cli -- extract --all` (or `--tax T`)
+- Corpus status (exit 0 only when no listed ruling is pending): `dotnet run --project src/LupaFiscal.Cli -- corpus-status --all` (or `--tax T`; add `--list-failed` for reasons)
 - Download the embedding model (pinned revision, SHA-256 verified, no account; also run by the first `index`): `dotnet run --project src/LupaFiscal.Cli -- model download`
-- Build or update the index (idempotent, resumable; about 5 min for CIRS on CPU): `dotnet run --project src/LupaFiscal.Cli -- index` (optional `--tax CIRS`)
-- Index status (exit 0 only when every extracted ruling has chunks and every chunk has a vector): `dotnet run --project src/LupaFiscal.Cli -- index-status`
-- Search: `dotnet run --project src/LupaFiscal.Cli -- search "Posso deduzir as despesas de educação dos meus filhos no IRS?"` (options: `--tax T`, `--article A`, `--year Y`, `--limit N` from 1 to 50, `--mode hybrid|keyword|vector`)
-- Retrieval eval (recall@10 and MRR@10 for keyword, vector and hybrid; writes `docs/eval/report.md` and `docs/eval/history.json`, leaving them unchanged when the scores are unchanged; the question set is frozen, see `eval/README.md`): `dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.70` (options: `--label L`, `--note N` to name and describe a tuning iteration)
+- Build or update the index of every crawled tax (idempotent, resumable, only new or changed rulings embedded; byte-identical PDFs listed by several taxes are stored once; about 40 min from scratch on CPU, under 1 min when nothing changed): `dotnet run --project src/LupaFiscal.Cli -- index` (optional `--tax T`)
+- Index status (exit 0 only when every extracted ruling has chunks and every chunk has a vector): `dotnet run --project src/LupaFiscal.Cli -- index-status` (every tax; optional `--tax T`)
+- Search: `dotnet run --project src/LupaFiscal.Cli -- search "Posso deduzir as despesas de educação dos meus filhos no IRS?"` (options: `--tax T`, `--article A` only with `--tax`, `--year Y`, `--limit N` from 1 to 50, `--mode hybrid|keyword|vector`)
+- Retrieval eval (recall@10 and MRR@10 for keyword, vector and hybrid; prints the scores and writes nothing unless `--record`, which writes the report and the `history.json` next to it, leaving them unchanged when the scores are unchanged; both question sets are frozen, see `eval/README.md`): CIRS set `dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.85`; other-taxes set `dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions-taxes.json --out docs/eval/taxes/report.md` (options: `--record`, `--label L` and `--note N` with `--record` to name and describe a tuning iteration, `--freeze` to pin a new set's hash before measuring)
 - Latency benchmark (50 hybrid queries after one warm-up, prints p50, p95 and max; add `--record` to write them to the report): `dotnet run --project src/LupaFiscal.Cli -- bench --questions eval/questions.json --max-ms 1000`
-- Run the API (needs the index and model; listens only on http://localhost:4401; also serves the built UI from `web/dist` when present): `dotnet run --project src/LupaFiscal.Api` (options: `--data-dir D`, `--web-root W`). Endpoints: `GET /api/search?q=&tax=&article=&year=&limit=` (limit 1 to 50, default 10; invalid input returns a 400 problem), `GET /api/facets`, `GET /api/health`.
+- Run the API (needs the index and model; listens only on http://localhost:4401; also serves the built UI from `web/dist` when present): `dotnet run --project src/LupaFiscal.Api` (options: `--data-dir D`, `--web-root W`). Endpoints: `GET /api/search?q=&tax=&article=&year=&limit=` (article only with tax; limit 1 to 50, default 10; invalid input returns a 400 problem), `GET /api/facets` (`taxes`, `articles` as `{tax, value, count}`, `years`), `GET /api/health`.
 - Web UI (Angular 21 in `web/`; install once with `npm --prefix web ci`, and `npm ci` at the root for the Playwright tooling):
   - Build: `npm --prefix web run build` (output `web/dist`, served by the API on 4401)
   - Test (Vitest, runs once): `npm --prefix web test`
@@ -31,7 +31,7 @@ Run from the repository root. Data goes to `data/` (override with `--data-dir` o
 
 ## Invariants
 - Source code, identifiers, comments and logs in English. UI copy in European Portuguese.
-- No generated answers in v0.1: results are always passages from cited official rulings. Not tax advice; the UI shows that notice.
+- No generated answers in v0.1 or v0.2 part 1 (answer synthesis is part 2, pending a Sponsor model decision): results are always passages from cited official rulings. Not tax advice; the UI shows that notice.
 - Crawler is polite: respects robots.txt, rate limited, descriptive User-Agent, resumable, disk cache.
 - Local data lives under `data/` (corpus cache, index database, model files) and is never committed. Tests use a small fixture corpus; CI never crawls.
 - Never use `token` or `secret` in a file name: those patterns are gitignored as credentials (name a tokenizer e.g. `WordPieceEncoder.cs`).

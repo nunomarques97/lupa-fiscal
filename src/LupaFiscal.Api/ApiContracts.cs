@@ -22,11 +22,14 @@ public sealed record SearchResultItem(
 
 public sealed record FacetValue(string Value, int Count);
 
+/// <summary>An article within one tax: articles of different codes are never merged.</summary>
+public sealed record ArticleFacetValue(string Tax, string Value, int Count);
+
 public sealed record YearFacetValue(int Value, int Count);
 
 public sealed record FacetsResponse(
     IReadOnlyList<FacetValue> Taxes,
-    IReadOnlyList<FacetValue> Articles,
+    IReadOnlyList<ArticleFacetValue> Articles,
     IReadOnlyList<YearFacetValue> Years);
 
 public sealed record HealthResponse(string Status, int Rulings, int Chunks);

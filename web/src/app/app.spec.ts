@@ -7,11 +7,19 @@ import { FacetsResponse, SearchResponse, SearchResult } from './api';
 import { App, VALIDATION_MESSAGE } from './app';
 import { routes } from './app.routes';
 
+// Article 13 exists in two codes with different counts: they must never be merged.
 const FACETS: FacetsResponse = {
-  taxes: [{ value: 'CIRS', count: 1189 }],
+  taxes: [
+    { value: 'CIEC', count: 1 },
+    { value: 'CIRS', count: 1189 },
+    { value: 'CIVA', count: 2993 },
+    { value: 'SELO', count: 200 },
+  ],
   articles: [
-    { value: '13', count: 17 },
-    { value: '78-D', count: 40 },
+    { tax: 'CIRS', value: '13', count: 17 },
+    { tax: 'CIRS', value: '78-D', count: 40 },
+    { tax: 'CIVA', value: '13', count: 5 },
+    { tax: 'CIVA', value: 'Verba 1.12', count: 3 },
   ],
   years: [
     { value: 2024, count: 300 },
@@ -19,12 +27,18 @@ const FACETS: FacetsResponse = {
   ],
 };
 
-function result(rulingId: string, passage = 'Despesas de educação dos filhos.', highlights = [{ start: 12, length: 8 }]): SearchResult {
+function result(
+  rulingId: string,
+  passage = 'Despesas de educação dos filhos.',
+  highlights = [{ start: 12, length: 8 }],
+  tax = 'CIRS',
+  article = '13',
+): SearchResult {
   return {
     rulingId,
     processNumber: rulingId.replace('piv_', ''),
-    tax: 'CIRS',
-    article: '13',
+    tax,
+    article,
     date: '2020-04-15',
     subject: 'Dependentes',
     section: 'content',
@@ -57,6 +71,8 @@ describe('App', () => {
   const live = () => el.querySelector('[data-live]')!.textContent!.trim();
   const rulingIds = () => [...el.querySelectorAll('[data-result]')].map(li => li.getAttribute('data-ruling-id'));
   const queryParams = () => router.parseUrl(router.url).queryParams;
+  const select = (id: string) => el.querySelector<HTMLSelectElement>(id)!;
+  const options = (id: string) => [...select(id).options].map(o => [o.value, o.textContent!.trim()]);
 
   async function type(text: string) {
     input().value = text;
@@ -108,14 +124,15 @@ describe('App', () => {
   });
 
   it('restores the question and filters from the URL and searches with them', async () => {
-    await start('/?q=despesas%20de%20educa%C3%A7%C3%A3o&article=78-D&year=2020');
+    await start('/?q=despesas%20de%20educa%C3%A7%C3%A3o&tax=CIRS&article=78-D&year=2020');
 
     const request = lastSearch();
     expect(request.request.params.get('q')).toBe('despesas de educação');
+    expect(request.request.params.get('tax')).toBe('CIRS');
     expect(request.request.params.get('article')).toBe('78-D');
     expect(request.request.params.get('year')).toBe('2020');
-    expect(request.request.params.has('tax')).toBe(false);
     expect(input().value).toBe('despesas de educação');
+    expect(el.querySelector<HTMLSelectElement>('#d-tax')!.value).toBe('CIRS');
     expect(el.querySelector<HTMLSelectElement>('#d-article')!.value).toBe('78-D');
     expect(el.querySelector<HTMLSelectElement>('#d-year')!.value).toBe('2020');
     expect(el.querySelector('[data-region]')!.getAttribute('aria-busy')).toBe('true');
@@ -153,7 +170,9 @@ describe('App', () => {
     expect(link.rel).toBe('noopener noreferrer');
     expect(el.querySelector('[data-result]')!.textContent).toContain('Processo 1');
     expect(el.querySelector('[data-result] time')!.getAttribute('datetime')).toBe('2020-04-15');
-    expect(el.querySelector('[data-result]')!.textContent).toContain('Art. 13.º CIRS');
+    const citation = [...el.querySelectorAll('[data-result] .cite dd')].map(dd => dd.textContent!.trim());
+    expect(citation).toEqual(['IRS', 'Art. 13.º', '15/04/2020', 'Secção: Texto']);
+    expect(el.querySelector('[data-result]')!.getAttribute('data-tax')).toBe('CIRS');
     expect(el.querySelector('[data-result]')!.textContent).toContain('Secção: Texto');
   });
 
@@ -203,20 +222,205 @@ describe('App', () => {
     expect(live()).toBe('Não foi possível pesquisar.');
   });
 
-  it('lets a filter change during loading supersede the pending request', async () => {
+  it('lets a tax change during loading supersede the pending request', async () => {
     await start();
     await type('educação');
     await submit();
     const unfiltered = lastSearch();
-    await chooseFilter('#d-article', '13');
+    await chooseFilter('#d-tax', 'CIVA');
     expect(unfiltered.cancelled).toBe(true);
     const filtered = lastSearch();
-    expect(filtered.request.params.get('article')).toBe('13');
-    expect(document.activeElement).toBe(el.querySelector('#d-article'));
-    filtered.flush(response(result('piv_13')));
+    expect(filtered.request.params.get('tax')).toBe('CIVA');
+    expect(filtered.request.params.has('article')).toBe(false);
+    expect(document.activeElement).toBe(el.querySelector('#d-tax'));
+    expect(el.querySelectorAll('[data-result]')).toHaveLength(0);
+    filtered.flush(response(result('piv_9', undefined, undefined, 'CIVA', '9')));
     await settle();
-    expect(rulingIds()).toEqual(['piv_13']);
-    expect(queryParams()['article']).toBe('13');
+    expect(rulingIds()).toEqual(['piv_9']);
+    expect(queryParams()['tax']).toBe('CIVA');
+    expect(live()).toBe('1 informação vinculativa encontrada.');
+  });
+
+  it('keeps the newer tax when its search fails after an earlier one, and retries the newer one', async () => {
+    await start('/?q=educa%C3%A7%C3%A3o&tax=CIRS');
+    const first = lastSearch();
+    await chooseFilter('#d-tax', 'CIVA');
+    expect(first.cancelled).toBe(true);
+    lastSearch().flush({ title: 'error' }, { status: 500, statusText: 'Server Error' });
+    await settle();
+    expect(el.querySelector('[data-error]')).not.toBeNull();
+
+    el.querySelector<HTMLButtonElement>('[data-error] button')!.click();
+    await settle();
+    const retried = lastSearch();
+    expect(retried.request.params.get('tax')).toBe('CIVA');
+    retried.flush(response(result('piv_9', undefined, undefined, 'CIVA', '9')));
+    await settle();
+    expect(rulingIds()).toEqual(['piv_9']);
+    expect(el.querySelector('[data-error]')).toBeNull();
+  });
+
+  it('lists every tax with its count and label, sorted by label, with unknown codes as they are', async () => {
+    await start();
+    expect(options('#d-tax')).toEqual([
+      ['', 'Todos'],
+      ['CIEC', 'CIEC (1)'],
+      ['SELO', 'Imposto do Selo (200)'],
+      ['CIRS', 'IRS (1189)'],
+      ['CIVA', 'IVA (2993)'],
+    ]);
+  });
+
+  it('disables the article select with a hint until a tax is chosen, then lists only its articles', async () => {
+    await start();
+    const article = select('#d-article');
+    expect(article.disabled).toBe(true);
+    expect(options('#d-article')).toEqual([['', 'Todos']]);
+    expect(article.getAttribute('aria-describedby')).toBe('d-article-hint');
+    expect(el.querySelector('#d-article-hint')!.textContent!.trim()).toBe('Escolha primeiro um imposto.');
+
+    await chooseFilter('#d-tax', 'CIRS');
+    expect(select('#d-article').disabled).toBe(false);
+    expect(select('#d-article').hasAttribute('aria-describedby')).toBe(false);
+    expect(el.querySelector('#d-article-hint')).toBeNull();
+    expect(options('#d-article')).toEqual([
+      ['', 'Todos'],
+      ['13', '13.º (17)'],
+      ['78-D', '78.º-D (40)'],
+    ]);
+
+    await chooseFilter('#d-tax', 'CIVA');
+    expect(options('#d-article')).toEqual([
+      ['', 'Todos'],
+      ['13', '13.º (5)'],
+      ['Verba 1.12', 'Verba 1.12 (3)'],
+    ]);
+    // Without a question, a filter change does not search.
+    expect(searches()).toHaveLength(0);
+  });
+
+  it('clears the article when the tax changes or is cleared', async () => {
+    await start('/?q=educa%C3%A7%C3%A3o&tax=CIRS&article=13');
+    lastSearch().flush(response(result('piv_1')));
+    await settle();
+    expect(select('#d-article').value).toBe('13');
+
+    await chooseFilter('#d-tax', 'CIVA');
+    let request = lastSearch();
+    expect(request.request.params.get('tax')).toBe('CIVA');
+    expect(request.request.params.has('article')).toBe(false);
+    expect(select('#d-article').value).toBe('');
+    request.flush(response(result('piv_9', undefined, undefined, 'CIVA', '9')));
+    await settle();
+    expect(queryParams()).toEqual({ q: 'educação', tax: 'CIVA' });
+
+    await chooseFilter('#d-article', 'Verba 1.12');
+    request = lastSearch();
+    expect(request.request.params.get('article')).toBe('Verba 1.12');
+    request.flush(response(result('piv_8', undefined, undefined, 'CIVA', 'Verba 1.12')));
+    await settle();
+    expect(el.querySelector('.active-filters')!.textContent!.trim()).toBe('IVA · Verba 1.12');
+
+    await chooseFilter('#d-tax', '');
+    request = lastSearch();
+    expect(request.request.params.has('tax')).toBe(false);
+    expect(request.request.params.has('article')).toBe(false);
+    expect(select('#d-article').disabled).toBe(true);
+    request.flush(response(result('piv_1')));
+    await settle();
+    expect(queryParams()).toEqual({ q: 'educação' });
+  });
+
+  it('drops an article without a tax from the URL, with no error state', async () => {
+    await start('/?q=educa%C3%A7%C3%A3o&article=13&year=2020');
+    // Replacing the URL does not search a second time.
+    const pending = searches();
+    expect(pending).toHaveLength(1);
+    const request = pending[0];
+    expect(request.request.params.has('article')).toBe(false);
+    expect(request.request.params.get('year')).toBe('2020');
+    expect(queryParams()).toEqual({ q: 'educação', year: '2020' });
+    expect(select('#d-article').value).toBe('');
+    expect(select('#d-article').disabled).toBe(true);
+
+    request.flush(response(result('piv_1')));
+    await settle();
+    expect(el.querySelector('[data-error]')).toBeNull();
+    expect(rulingIds()).toEqual(['piv_1']);
+  });
+
+  it('shows the tax and article of every result', async () => {
+    await start('/?q=x');
+    lastSearch().flush(
+      response(
+        result('piv_1'),
+        result('piv_2', undefined, undefined, 'CIVA', 'Verba 1.12'),
+        result('piv_3', undefined, undefined, 'SELO', ''),
+        result('piv_4', undefined, undefined, 'CIEC', '5'),
+      ),
+    );
+    await settle();
+    const cites = [...el.querySelectorAll('[data-result] .cite dl')].map(dl =>
+      [...dl.querySelectorAll('dd')].slice(0, 2).map(dd => dd.textContent!.trim()),
+    );
+    expect(cites).toEqual([
+      ['IRS', 'Art. 13.º'],
+      ['IVA', 'Verba 1.12'],
+      ['Imposto do Selo', '15/04/2020'],
+      ['CIEC', 'Art. 5.º'],
+    ]);
+  });
+
+  it('scopes the article select in the mobile sheet the same way, applying only on "Aplicar filtros"', async () => {
+    // jsdom has no modal dialog; these stand-ins open and close it like the browser does.
+    const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
+    const saved = { showModal: proto['showModal'], close: proto['close'] };
+    proto['showModal'] = function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    proto['close'] = function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+      this.dispatchEvent(new Event('close'));
+    };
+    try {
+      await start('/?q=educa%C3%A7%C3%A3o&tax=CIRS&article=13');
+      lastSearch().flush(response(result('piv_1')));
+      await settle();
+
+      el.querySelector<HTMLButtonElement>('.filters-toggle')!.click();
+      await settle();
+      expect(document.activeElement).toBe(select('#m-tax'));
+      expect(select('#m-article').value).toBe('13');
+
+      await chooseFilter('#m-tax', 'CIVA');
+      expect(select('#m-article').value).toBe('');
+      expect(options('#m-article').map(([value]) => value)).toEqual(['', '13', 'Verba 1.12']);
+      await chooseFilter('#m-article', 'Verba 1.12');
+
+      await chooseFilter('#m-tax', '');
+      expect(select('#m-article').disabled).toBe(true);
+      expect(el.querySelector('#m-article-hint')!.textContent!.trim()).toBe('Escolha primeiro um imposto.');
+      await chooseFilter('#m-tax', 'CIVA');
+      await chooseFilter('#m-article', 'Verba 1.12');
+      // The sheet does not search before it is applied, and the rail is unchanged.
+      expect(searches()).toHaveLength(0);
+      expect(select('#d-tax').value).toBe('CIRS');
+
+      el.querySelector<HTMLButtonElement>('dialog .btn')!.click();
+      await settle();
+      const request = lastSearch();
+      expect(request.request.params.get('tax')).toBe('CIVA');
+      expect(request.request.params.get('article')).toBe('Verba 1.12');
+      expect(document.activeElement).toBe(el.querySelector('.filters-toggle'));
+      request.flush(response(result('piv_8', undefined, undefined, 'CIVA', 'Verba 1.12')));
+      await settle();
+      expect(select('#d-tax').value).toBe('CIVA');
+      expect(select('#d-article').value).toBe('Verba 1.12');
+      expect(el.querySelector('.filters-toggle')!.textContent!.trim()).toBe('Filtros (2)');
+    } finally {
+      proto['showModal'] = saved.showModal;
+      proto['close'] = saved.close;
+    }
   });
 
   it('retries the last submitted search, not unsubmitted edits, and recovers', async () => {
@@ -268,7 +472,7 @@ describe('App', () => {
   });
 
   it('refreshes from an empty result when the filters are cleared', async () => {
-    await start('/?q=educa%C3%A7%C3%A3o&article=78-D&year=2024');
+    await start('/?q=educa%C3%A7%C3%A3o&tax=CIRS&article=78-D&year=2024');
     lastSearch().flush(response());
     await settle();
     expect(el.querySelector('[data-empty] h2')!.textContent).toBe('Nenhuma informação vinculativa encontrada');
@@ -278,6 +482,7 @@ describe('App', () => {
     await settle();
     const request = lastSearch();
     expect(request.request.params.get('q')).toBe('educação');
+    expect(request.request.params.has('tax')).toBe(false);
     expect(request.request.params.has('article')).toBe(false);
     expect(request.request.params.has('year')).toBe(false);
     expect(document.activeElement).toBe(input());

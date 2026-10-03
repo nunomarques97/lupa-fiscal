@@ -4,9 +4,12 @@
 // Starts the built API (src/LupaFiscal.Api, Debug build) on http://localhost:4401 serving web/dist,
 // then uses the Chromium already installed for Playwright (never downloads a browser) at 1440 and
 // 390 px. Captures: initial, validation, loading, results, filters (plus the mobile filter sheet),
-// empty and error. Asserts no horizontal overflow, keyboard-only search and filter use, URL restore,
-// request ownership (a delayed earlier response, success or failure, never replaces a later one) and
-// retry of the last submitted search. Exits non-zero on any failed assertion.
+// results from several taxes, the tax filter with its scoped article list (plus the mobile sheet),
+// empty and error. Asserts no horizontal overflow, keyboard-only search and filter use, that the
+// article select is disabled until a tax is chosen and then lists only that tax's articles, URL
+// restore, request ownership (a delayed earlier response, success or failure, never replaces a later
+// one, also when the tax changes mid-request) and retry of the last submitted search. Exits non-zero
+// on any failed assertion.
 // Prerequisites: `dotnet build LupaFiscal.slnx`, `npm --prefix web run build`, and the index in data/.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, statSync, unlinkSync } from 'node:fs';
@@ -27,6 +30,25 @@ const VIEWPORTS = [
 ];
 const QUERY = 'Posso deduzir as despesas de educação dos meus filhos no IRS?';
 const OTHER_QUERY = 'Vendi a casa onde morava. Tenho de pagar mais-valias?';
+// A question whose closest rulings come from several taxes (IMT, IRS and Imposto do Selo).
+const MULTI_QUERY = 'Doação de um imóvel a um filho: que impostos pago?';
+const ARTICLE_HINT = 'Escolha primeiro um imposto.';
+// Display names of the tax codes, as in web/src/app/format.ts.
+const TAX_LABELS = {
+  CIRS: 'IRS',
+  CIRC: 'IRC',
+  CIVA: 'IVA',
+  CIMI: 'IMI',
+  CIMT: 'IMT',
+  CIUC: 'IUC',
+  SELO: 'Imposto do Selo',
+  EBF: 'Estatuto dos Benefícios Fiscais',
+  RITI: 'RITI',
+  LGT: 'LGT',
+  DSRI: 'Relações internacionais',
+  CESE: 'CESE',
+  CSB: 'CSB',
+};
 const VALIDATION = 'Escreva uma pergunta para pesquisar.';
 const ERROR_ANNOUNCEMENT = 'Não foi possível pesquisar.';
 const EMPTY_ANNOUNCEMENT = 'Nenhuma informação vinculativa encontrada.';
@@ -92,12 +114,21 @@ async function startApi() {
 
 const searchUrl = params => '/api/search?' + new URLSearchParams(params).toString();
 const pageUrl = params => BASE + '/?' + new URLSearchParams(params).toString();
+const NUMBERED_ARTICLE = /^\d+(-[A-Za-z]+)*$/;
 const articleLabel = value => {
+  if (!NUMBERED_ARTICLE.test(value)) return value;
   const [number, ...suffix] = value.split('-');
   return number + '.º' + (suffix.length ? '-' + suffix.join('-') : '');
 };
+const articlePhrase = value => (NUMBERED_ARTICLE.test(value) ? `artigo ${articleLabel(value)}` : value);
+const articleCitation = value => (NUMBERED_ARTICLE.test(value) ? `Art. ${articleLabel(value)}` : value);
+const taxLabel = code => TAX_LABELS[code] ?? code;
+const articlesOf = (facets, tax) => facets.articles.filter(a => a.tax === tax).map(a => a.value);
 
-/** Real data for the scenarios: a filter that keeps results and a filter combination with none. */
+/**
+ * Real data for the scenarios: a tax and article filter that keeps results, a filter combination
+ * with none, and a question answered from several taxes with a scoped tax and article filter.
+ */
 async function scenarioData() {
   const facets = await getJson('/api/facets');
   const first = await getJson(searchUrl({ q: QUERY }));
@@ -105,24 +136,35 @@ async function scenarioData() {
   if (!first.results.length || !other.results.length) throw new Error('The sample questions return no results; is the index built?');
   if (first.results[0].rulingId === other.results[0].rulingId) throw new Error('The two sample questions share their top ruling; pick different questions.');
   const top = first.results.find(r => r.article && r.date);
-  const filter = { article: top.article, year: top.date.slice(0, 4) };
+  const filter = { tax: top.tax, article: top.article, year: top.date.slice(0, 4) };
   const filtered = await getJson(searchUrl({ q: QUERY, ...filter }));
-  const articleOnly = await getJson(searchUrl({ q: QUERY, article: filter.article }));
+  const taxOnly = await getJson(searchUrl({ q: QUERY, tax: filter.tax }));
 
-  // The least common article combined with years it does not appear in.
+  // The least common article of the tax combined with years it does not appear in.
   let empty = null;
-  const articles = [...facets.articles].sort((a, b) => a.count - b.count).slice(0, 10);
+  const articles = facets.articles.filter(a => a.tax === filter.tax).sort((a, b) => a.count - b.count).slice(0, 10);
   outer: for (const article of articles) {
     for (const year of facets.years.slice(0, 5)) {
-      const result = await getJson(searchUrl({ q: QUERY, article: article.value, year: String(year.value) }));
+      const result = await getJson(searchUrl({ q: QUERY, tax: filter.tax, article: article.value, year: String(year.value) }));
       if (!result.results.length) {
-        empty = { article: article.value, year: String(year.value) };
+        empty = { tax: filter.tax, article: article.value, year: String(year.value) };
         break outer;
       }
     }
   }
   if (!empty) throw new Error('No filter combination without results was found.');
-  return { facets, first, other, filter, filtered, articleOnly, empty };
+
+  // Results from several taxes, and a tax (other than the first scenario's) with one of its articles.
+  const multi = await getJson(searchUrl({ q: MULTI_QUERY }));
+  const multiTaxes = new Set(multi.results.map(r => r.tax));
+  if (multiTaxes.size < 3) throw new Error(`The multi-tax question returns ${multiTaxes.size} taxes; pick another question.`);
+  const scoped = multi.results.find(r => r.tax !== filter.tax && r.article && articlesOf(facets, r.tax).includes(r.article));
+  if (!scoped) throw new Error('No result of the multi-tax question has a tax and article to filter on.');
+  const taxFilter = { tax: scoped.tax, article: scoped.article };
+  if (articlesOf(facets, taxFilter.tax).length === facets.articles.length) throw new Error('Only one tax has articles; the scoped list cannot be checked.');
+  const multiTax = await getJson(searchUrl({ q: MULTI_QUERY, tax: taxFilter.tax }));
+  const multiTaxArticle = await getJson(searchUrl({ q: MULTI_QUERY, ...taxFilter }));
+  return { facets, first, other, filter, filtered, taxOnly, empty, multi, taxFilter, multiTax, multiTaxArticle };
 }
 
 // ---- Page helpers ----
@@ -154,7 +196,7 @@ async function openPage(browser, viewport, label) {
 }
 
 async function waitForFacets(page) {
-  await page.waitForFunction(() => document.querySelectorAll('#d-article option').length > 1, null, { timeout: 15_000 });
+  await page.waitForFunction(() => document.querySelectorAll('#d-tax option').length > 1, null, { timeout: 15_000 });
 }
 
 const announcements = async page => page.evaluate(() => window.__live.filter(Boolean));
@@ -169,6 +211,47 @@ async function waitForState(page, state) {
   await page.waitForSelector(selector, { timeout: 15_000 });
   if (state !== 'loading') await page.waitForFunction(() => !document.querySelector('[data-region]')?.hasAttribute('aria-busy'), null, { timeout: 15_000 });
 }
+
+/**
+ * Runs an action that starts a search with the given filters ('' for none) and waits until that search
+ * has answered and its results are shown, so the stale results of the previous search never pass for it.
+ */
+async function searchSettled(page, filters, action) {
+  const answered = page.waitForResponse(
+    response => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/search' && Object.entries(filters).every(([key, value]) => (url.searchParams.get(key) ?? '') === value);
+    },
+    { timeout: 15_000 },
+  );
+  const result = await action();
+  await answered;
+  await waitForState(page, 'results');
+  return result;
+}
+
+/** The article select of the rail ("d") or the sheet ("m") is disabled and described by its hint. */
+async function articleDisabled(page, prefix) {
+  return page.evaluate(
+    ({ prefix, hint }) => {
+      const select = document.getElementById(`${prefix}-article`);
+      const text = document.getElementById(`${prefix}-article-hint`)?.textContent.trim();
+      return !!select?.disabled && select.getAttribute('aria-describedby') === `${prefix}-article-hint` && text === hint && select.value === '';
+    },
+    { prefix, hint: ARTICLE_HINT },
+  );
+}
+
+/** The values of the article select (without "Todos"), enabled and without a hint. */
+async function articleOptions(page, prefix) {
+  return page.evaluate(prefix => {
+    const select = document.getElementById(`${prefix}-article`);
+    if (!select || select.disabled || select.hasAttribute('aria-describedby')) return null;
+    return [...select.options].map(o => o.value).filter(Boolean);
+  }, prefix);
+}
+
+const sameSet = (a, b) => !!a && !!b && a.length === b.length && [...a].sort().join('\n') === [...b].sort().join('\n');
 
 async function tabTo(page, selector, { backwards = false, max = 40 } = {}) {
   for (let i = 0; i < max; i++) {
@@ -301,16 +384,18 @@ async function searchAndFilters(browser, viewport, data) {
   await shot(page, 'results', viewport, { needsResults: true });
 
   // Keyboard-only filters: the rail selects on desktop, the sheet (modal dialog) on mobile.
-  const { article, year } = data.filter;
+  const { tax, article, year } = data.filter;
   await clearAnnouncements(page);
   if (!mobile) {
-    check(label, await tabTo(page, '#d-article', { backwards: true }), 'Shift+Tab reaches the article filter');
-    check(label, await chooseWithKeyboard(page, article, articleLabel(article)), 'the article is chosen with the keyboard');
-    await waitForState(page, 'results');
+    check(label, await articleDisabled(page, 'd'), 'the article select is disabled with its hint until a tax is chosen');
+    check(label, await tabTo(page, '#d-tax', { backwards: true }), 'Shift+Tab reaches the tax filter (past the disabled article select)');
+    check(label, await searchSettled(page, { tax }, () => chooseWithKeyboard(page, tax, taxLabel(tax))), 'the tax is chosen with the keyboard');
+    check(label, (await activeId(page)) === 'd-tax', 'focus stays on the tax select after the filter change');
+    check(label, await tabTo(page, '#d-article'), 'Tab reaches the article filter once a tax is chosen');
+    check(label, await searchSettled(page, { tax, article }, () => chooseWithKeyboard(page, article, articleLabel(article))), 'the article is chosen with the keyboard');
     check(label, (await activeId(page)) === 'd-article', 'focus stays on the article select after the filter change');
     check(label, await tabTo(page, '#d-year'), 'Tab reaches the year filter');
-    check(label, await chooseWithKeyboard(page, year, year), 'the year is chosen with the keyboard');
-    await waitForState(page, 'results');
+    check(label, await searchSettled(page, { tax, article, year }, () => chooseWithKeyboard(page, year, year)), 'the year is chosen with the keyboard');
     check(label, (await activeId(page)) === 'd-year', 'focus stays on the year select after the filter change');
   } else {
     check(label, await tabTo(page, '.filters-toggle'), 'Tab reaches the Filtros button');
@@ -323,6 +408,8 @@ async function searchAndFilters(browser, viewport, data) {
 
     await page.keyboard.press('Enter');
     await page.waitForSelector('dialog.sheet[open]');
+    check(label, await articleDisabled(page, 'm'), 'the article select in the sheet is disabled with its hint until a tax is chosen');
+    check(label, await chooseWithKeyboard(page, tax, taxLabel(tax)), 'the tax is chosen with the keyboard in the sheet');
     check(label, await tabTo(page, '#m-article'), 'Tab reaches the article select in the sheet');
     check(label, await chooseWithKeyboard(page, article, articleLabel(article)), 'the article is chosen with the keyboard');
     check(label, await tabTo(page, '#m-year'), 'Tab reaches the year select in the sheet');
@@ -330,14 +417,19 @@ async function searchAndFilters(browser, viewport, data) {
     check(label, (await topRulingId(page)) === data.first.results[0].rulingId && new URL(page.url()).searchParams.get('article') === null, 'the sheet does not search before Aplicar filtros');
     await shot(page, 'filters-sheet', viewport);
     check(label, await tabTo(page, 'dialog.sheet .btn'), 'Tab reaches Aplicar filtros');
-    await page.keyboard.press('Enter');
-    await page.waitForSelector('dialog.sheet:not([open])', { state: 'attached' });
-    await waitForState(page, 'results');
+    await searchSettled(page, { tax, article, year }, async () => {
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('dialog.sheet:not([open])', { state: 'attached' });
+    });
     check(label, await activeMatches(page, '.filters-toggle'), 'applying the sheet returns focus to Filtros');
-    check(label, (await page.locator('.filters-toggle').textContent()).trim() === 'Filtros (2)', 'the Filtros button counts the active filters');
+    check(label, (await page.locator('.filters-toggle').textContent()).trim() === 'Filtros (3)', 'the Filtros button counts the active filters');
   }
   const url = new URL(page.url());
-  check(label, url.searchParams.get('article') === article && url.searchParams.get('year') === year, `the URL holds the filters (article ${article}, year ${year})`);
+  check(
+    label,
+    url.searchParams.get('tax') === tax && url.searchParams.get('article') === article && url.searchParams.get('year') === year,
+    `the URL holds the filters (tax ${tax}, article ${article}, year ${year})`,
+  );
   check(label, (await topRulingId(page)) === data.filtered.results[0].rulingId, 'filtered results match the API for the same filters');
   const finalAnnouncements = await announcements(page);
   check(label, finalAnnouncements.at(-1) === `${data.filtered.results.length} informações vinculativas encontradas.`, 'the filtered result count is announced');
@@ -349,9 +441,17 @@ async function searchAndFilters(browser, viewport, data) {
   await waitForState(page, 'results');
   const prefix = mobile ? 'm' : 'd';
   check(label, (await page.locator('#q').inputValue()) === QUERY, 'reload restores the question');
-  check(label, (await page.locator(`#d-article`).inputValue()) === article && (await page.locator(`#d-year`).inputValue()) === year, 'reload restores the filters');
+  await waitForFacets(page);
+  check(
+    label,
+    (await page.locator('#d-tax').inputValue()) === tax && (await page.locator('#d-article').inputValue()) === article && (await page.locator('#d-year').inputValue()) === year,
+    'reload restores the filters',
+  );
   check(label, (await topRulingId(page)) === before, 'reload shows the same results');
-  if (mobile) check(label, (await page.locator('.active-filters').textContent()).includes(`artigo ${articleLabel(article)}`), `reload restores the mobile filter summary (${prefix})`);
+  if (mobile) {
+    const summary = (await page.locator('.active-filters').textContent()).trim();
+    check(label, summary === `${taxLabel(tax)} · ${articlePhrase(article)} · ${year}`, `reload restores the mobile filter summary (${prefix}: ${summary})`);
+  }
   await context.close();
 }
 
@@ -371,7 +471,12 @@ async function emptyAndRecovery(browser, viewport, data) {
   await waitForState(page, 'results');
   check(label, (await activeId(page)) === 'q', 'after "Limpar filtros" in the empty state focus moves to the question box');
   const url = new URL(page.url());
-  check(label, url.searchParams.get('article') === null && url.searchParams.get('year') === null && url.searchParams.get('q') === QUERY, 'clearing the filters keeps the question and updates the URL');
+  check(
+    label,
+    ['tax', 'article', 'year'].every(name => url.searchParams.get(name) === null) && url.searchParams.get('q') === QUERY,
+    'clearing the filters keeps the question and updates the URL',
+  );
+  check(label, await articleDisabled(page, 'd'), 'clearing the filters disables the article select again');
   check(label, JSON.stringify(await announcements(page)) === JSON.stringify([`${data.first.results.length} informações vinculativas encontradas.`]), 'the refreshed result is announced once');
   await context.close();
 }
@@ -459,28 +564,164 @@ async function requestOwnership(browser, viewport, data) {
     await page.unroute('**/api/search?**');
   }
 
-  // A filter change while loading supersedes the pending request.
-  await page.route('**/api/search?**', async route => {
-    const params = new URL(route.request().url()).searchParams;
-    if (params.get('article')) return route.continue();
-    await new Promise(r => setTimeout(r, 1500));
-    try {
-      await route.fulfill({ response: await route.fetch() });
-    } catch {
-      // Aborted.
-    }
-  });
-  await page.locator('#q').focus();
-  await replaceQuery(page, QUERY);
+  // A tax change while loading supersedes the pending request, whether the earlier one later
+  // succeeds or fails.
+  for (const outcome of ['success', 'failure']) {
+    let slowStarted = false;
+    await page.route('**/api/search?**', async route => {
+      const params = new URL(route.request().url()).searchParams;
+      if (params.get('tax')) return route.continue();
+      slowStarted = true;
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        if (outcome === 'success') await route.fulfill({ response: await route.fetch() });
+        else await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
+      } catch {
+        // The page aborted the superseded request.
+      }
+    });
+    await page.locator('#d-tax').selectOption('');
+    await page.locator('#q').focus();
+    await replaceQuery(page, QUERY);
+    await clearAnnouncements(page);
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.querySelector('[data-region]')?.getAttribute('aria-busy') === 'true');
+    await page.locator('#d-tax').selectOption(data.filter.tax);
+    await waitForState(page, 'results');
+    await page.waitForTimeout(2000);
+    check(label, slowStarted, `the unfiltered request (${outcome}) was sent and delayed`);
+    check(
+      label,
+      (await topRulingId(page)) === data.taxOnly.results[0].rulingId && (await page.locator('[data-error]').count()) === 0,
+      `a tax change during loading supersedes the pending request (earlier ${outcome})`,
+    );
+    const taxes = await page.locator('[data-result]').evaluateAll(items => items.map(item => item.getAttribute('data-tax')));
+    check(label, taxes.length > 0 && taxes.every(t => t === data.filter.tax), `every shown result belongs to the chosen tax ${data.filter.tax}`);
+    check(label, JSON.stringify(await announcements(page)) === JSON.stringify([`${data.taxOnly.results.length} informações vinculativas encontradas.`]), `only the filtered search is announced (earlier ${outcome})`);
+    check(label, new URL(page.url()).searchParams.get('tax') === data.filter.tax, 'the URL holds the later tax');
+    await page.unroute('**/api/search?**');
+  }
+  await context.close();
+}
+
+async function shownResults(page) {
+  return page.locator('[data-result]').evaluateAll(items =>
+    items.map(item => ({
+      id: item.getAttribute('data-ruling-id'),
+      tax: item.getAttribute('data-tax'),
+      cite: [...item.querySelectorAll('.cite dd')].map(dd => dd.textContent.trim()),
+    })),
+  );
+}
+
+async function multiTax(browser, viewport, data) {
+  const label = `taxes @ ${viewport.width}px`;
+  const mobile = viewport.width < 720;
+  const { tax, article } = data.taxFilter;
+  const { context, page } = await openPage(browser, viewport, label);
+  await page.goto(BASE + '/');
+  await waitForFacets(page);
+
+  const taxOptions = await page.locator('#d-tax option').evaluateAll(os => os.map(o => `${o.value}=${o.textContent.trim()}`));
+  const expectedTaxes = data.facets.taxes.map(t => `${t.value}=${taxLabel(t.value)} (${t.count})`);
+  check(label, taxOptions[0] === '=Todos' && sameSet(taxOptions.slice(1), expectedTaxes), `the tax select lists every indexed tax (${expectedTaxes.length}) with its label and count`);
+
+  // A keyboard search answered from several taxes.
+  check(label, await tabTo(page, '#q'), 'Tab reaches the question box');
+  await page.keyboard.type(MULTI_QUERY);
   await clearAnnouncements(page);
   await page.keyboard.press('Enter');
-  await page.waitForFunction(() => document.querySelector('[data-region]')?.getAttribute('aria-busy') === 'true');
-  await page.locator('#d-article').selectOption(data.filter.article);
   await waitForState(page, 'results');
-  await page.waitForTimeout(2000);
-  check(label, (await topRulingId(page)) === data.articleOnly.results[0].rulingId, 'a filter change during loading supersedes the pending request');
-  check(label, JSON.stringify(await announcements(page)) === JSON.stringify([`${data.articleOnly.results.length} informações vinculativas encontradas.`]), 'only the filtered search is announced');
-  await page.unroute('**/api/search?**');
+  const shown = await shownResults(page);
+  const taxes = [...new Set(shown.map(s => s.tax))];
+  check(label, taxes.length >= 3, `results come from ${taxes.length} taxes (${taxes.join(', ')})`);
+  check(label, shown.length === data.multi.results.length && shown.every((s, i) => s.id === data.multi.results[i].rulingId && s.tax === data.multi.results[i].tax), 'results and their taxes match the API');
+  check(
+    label,
+    shown.every((s, i) => s.cite[0] === taxLabel(s.tax) && (!data.multi.results[i].article || s.cite[1] === articleCitation(data.multi.results[i].article))),
+    'every result shows its tax and article in the citation',
+  );
+  check(label, JSON.stringify(await announcements(page)) === JSON.stringify([`${shown.length} informações vinculativas encontradas.`]), 'the result count is announced once');
+  await shot(page, 'taxes', viewport, { needsResults: true });
+
+  // The first results up to the third distinct tax, captured as one image (below the first screen on a phone).
+  const third = shown.findIndex(s => s.tax === taxes[2]);
+  const box = await page.evaluate(last => {
+    const items = [...document.querySelectorAll('[data-result]')].slice(0, last + 1).map(item => item.getBoundingClientRect());
+    const top = items[0].top + window.scrollY;
+    return { x: 0, y: Math.max(0, top - 8), width: document.documentElement.clientWidth, height: items.at(-1).bottom + window.scrollY - top + 16 };
+  }, third);
+  const listOut = join(evidenceDir, `taxes-results-${viewport.width}.png`);
+  if (existsSync(listOut)) unlinkSync(listOut);
+  await page.screenshot({ path: listOut, clip: box, fullPage: true });
+  check(label, existsSync(listOut) && statSync(listOut).size > 0, `saved ${relative(root, listOut)} (first ${third + 1} results, ${taxes.slice(0, 3).join(', ')})`);
+
+  await clearAnnouncements(page);
+  if (!mobile) {
+    check(label, await articleDisabled(page, 'd'), 'the article select is disabled with its hint until a tax is chosen');
+    check(label, await tabTo(page, '#d-tax', { backwards: true }), 'Shift+Tab reaches the tax filter');
+    check(label, await searchSettled(page, { tax }, () => chooseWithKeyboard(page, tax, taxLabel(tax))), `the tax ${tax} is chosen with the keyboard`);
+    check(label, (await activeId(page)) === 'd-tax', 'focus stays on the tax select after the filter change');
+    const scoped = await articleOptions(page, 'd');
+    check(label, sameSet(scoped, articlesOf(data.facets, tax)) && scoped.length < data.facets.articles.length, `the article select lists only the ${scoped?.length} articles of ${tax}`);
+    check(label, await tabTo(page, '#d-article'), 'Tab reaches the article select');
+    check(label, await searchSettled(page, { tax, article }, () => chooseWithKeyboard(page, article, articleLabel(article))), `the article ${article} is chosen with the keyboard`);
+    check(label, (await activeId(page)) === 'd-article', 'focus stays on the article select after the filter change');
+  } else {
+    check(label, await tabTo(page, '.filters-toggle'), 'Tab reaches the Filtros button');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('dialog.sheet[open]');
+    check(label, (await activeId(page)) === 'm-tax', 'opening the sheet focuses the tax select');
+    check(label, await articleDisabled(page, 'm'), 'the article select in the sheet is disabled with its hint until a tax is chosen');
+    check(label, await chooseWithKeyboard(page, tax, taxLabel(tax)), `the tax ${tax} is chosen with the keyboard in the sheet`);
+    const scoped = await articleOptions(page, 'm');
+    check(label, sameSet(scoped, articlesOf(data.facets, tax)) && scoped.length < data.facets.articles.length, `the sheet's article select lists only the ${scoped?.length} articles of ${tax}`);
+    check(label, await tabTo(page, '#m-article'), 'Tab reaches the article select in the sheet');
+    check(label, await chooseWithKeyboard(page, article, articleLabel(article)), `the article ${article} is chosen with the keyboard`);
+    check(label, new URL(page.url()).searchParams.get('tax') === null, 'the sheet does not search before Aplicar filtros');
+    await shot(page, 'tax-filter-sheet', viewport);
+
+    // Clearing the tax in the sheet clears and disables the article; then choose both again.
+    check(label, await tabTo(page, '#m-tax', { backwards: true }), 'Shift+Tab returns to the tax select in the sheet');
+    check(label, await chooseWithKeyboard(page, '', 'Todos'), 'the tax is cleared with the keyboard');
+    check(label, await articleDisabled(page, 'm'), 'clearing the tax clears and disables the article select in the sheet');
+    check(label, await chooseWithKeyboard(page, tax, taxLabel(tax)), 'the tax is chosen again');
+    check(label, await tabTo(page, '#m-article'), 'Tab reaches the article select again');
+    check(label, await chooseWithKeyboard(page, article, articleLabel(article)), 'the article is chosen again');
+    check(label, await tabTo(page, 'dialog.sheet .btn'), 'Tab reaches Aplicar filtros');
+    await searchSettled(page, { tax, article }, async () => {
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('dialog.sheet:not([open])', { state: 'attached' });
+    });
+    check(label, await activeMatches(page, '.filters-toggle'), 'applying the sheet returns focus to Filtros');
+    const summary = (await page.locator('.active-filters').textContent()).trim();
+    check(label, summary === `${taxLabel(tax)} · ${articlePhrase(article)}`, `the mobile filter summary names the tax and article (${summary})`);
+  }
+  const filtered = await shownResults(page);
+  const url = new URL(page.url());
+  check(label, url.searchParams.get('tax') === tax && url.searchParams.get('article') === article, `the URL holds the tax ${tax} and article ${article}`);
+  check(label, filtered.length > 0 && filtered.every(s => s.tax === tax && s.cite[0] === taxLabel(tax)), `every result belongs to ${tax} and shows it`);
+  check(label, filtered[0]?.id === data.multiTaxArticle.results[0].rulingId, 'filtered results match the API for the same tax and article');
+  check(label, (await announcements(page)).at(-1) === `${data.multiTaxArticle.results.length} informações vinculativas encontradas.`, 'the filtered result count is announced');
+  await shot(page, 'tax-filter', viewport, { needsResults: true });
+
+  if (!mobile) {
+    // Clearing the tax clears the article, searches again and disables the article select.
+    await page.locator('#d-tax').focus();
+    check(label, await searchSettled(page, { tax: '', article: '' }, () => chooseWithKeyboard(page, '', 'Todos')), 'the tax is cleared with the keyboard');
+    const cleared = new URL(page.url());
+    check(label, cleared.searchParams.get('tax') === null && cleared.searchParams.get('article') === null, 'clearing the tax removes the tax and article from the URL');
+    check(label, await articleDisabled(page, 'd'), 'clearing the tax clears and disables the article select');
+    check(label, (await topRulingId(page)) === data.multi.results[0].rulingId, 'clearing the tax shows the unfiltered results again');
+  }
+
+  // A shared link with an article but no tax drops the article without an error.
+  await page.goto(pageUrl({ q: MULTI_QUERY, article }));
+  await waitForState(page, 'results');
+  await waitForFacets(page);
+  check(label, (await page.locator('[data-error]').count()) === 0 && (await topRulingId(page)) === data.multi.results[0].rulingId, 'a URL with an article but no tax loads unfiltered results, no error');
+  check(label, new URL(page.url()).searchParams.get('article') === null, 'the article without a tax is removed from the URL');
+  check(label, await articleDisabled(page, 'd'), 'the article select stays disabled for a URL article without a tax');
   await context.close();
 }
 
@@ -496,6 +737,7 @@ try {
   for (const viewport of VIEWPORTS) {
     await initialAndValidation(browser, viewport);
     await searchAndFilters(browser, viewport, data);
+    await multiTax(browser, viewport, data);
     await emptyAndRecovery(browser, viewport, data);
     await errorAndRetry(browser, viewport, data);
   }

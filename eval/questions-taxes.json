@@ -1,0 +1,288 @@
+{
+  "description": "Lupa Fiscal retrieval eval, other taxes: plain-Portuguese questions about IVA, IRC, IMT, Imposto do Selo, IMI, EBF and IUC rulings, each with the rulings that answer it. Frozen on 2026-10-03 before any measurement; see eval/README.md.",
+  "frozen": "2026-10-03",
+  "questions": [
+    {
+      "id": "t01",
+      "tax": "CIVA",
+      "article": "9",
+      "question": "Sou psicóloga clínica e dou consultas de psicoterapia no meu consultório. Tenho de cobrar IVA aos pacientes?",
+      "expected": [
+        "civa-piv_25812",
+        "civa-informacao_13014",
+        "civa-inf-vinculativa_2009_2083",
+        "civa-informacao-2933",
+        "civa-informacao-3251",
+        "civa-vinculativa_17439",
+        "civa-vinculativa_19925"
+      ]
+    },
+    {
+      "id": "t02",
+      "tax": "CIVA",
+      "article": "Verba 2.37",
+      "question": "Quero pôr painéis solares fotovoltaicos com bateria no telhado de casa. A empresa que os vende e instala pode cobrar IVA à taxa reduzida?",
+      "expected": [
+        "civa-piv_25425",
+        "civa-piv_26056",
+        "civa-piv_26437",
+        "civa-piv_26346",
+        "civa-piv_27508",
+        "civa-piv_26960"
+      ]
+    },
+    {
+      "id": "t03",
+      "tax": "CIVA",
+      "article": "18",
+      "question": "Tenho um apartamento em alojamento local que arrendo a turistas por poucos dias. Que taxa de IVA ponho nas faturas das estadias?",
+      "expected": [
+        "civa-piv_24650",
+        "civa-informacao4111"
+      ]
+    },
+    {
+      "id": "t04",
+      "tax": "CIVA",
+      "article": "9",
+      "question": "Dou explicações de matemática a alunos do secundário e passo recibos verdes. Tenho de cobrar IVA?",
+      "expected": [
+        "civa-inf-1116",
+        "civa-tratado-1986",
+        "civa-tratado-1817"
+      ]
+    },
+    {
+      "id": "t05",
+      "tax": "CIVA",
+      "article": "53",
+      "question": "Vou começar a dar aulas de vela a um clube como trabalhador independente e conto faturar pouco por ano. Posso ficar sem cobrar IVA?",
+      "expected": [
+        "civa-12468",
+        "civa-informacao_13593"
+      ]
+    },
+    {
+      "id": "t06",
+      "tax": "CIVA",
+      "article": "verba 2.27",
+      "question": "Vou fazer obras de remodelação na casa onde vivo. O empreiteiro pode faturar a obra com IVA a 6%?",
+      "expected": [
+        "civa-informacao-1075",
+        "civa-informacao_14676",
+        "civa-informacao_15421",
+        "civa-informacao_15432",
+        "civa-piv_27048",
+        "civa-piv_27137",
+        "civa-piv_28813",
+        "civa-informacao-3046"
+      ]
+    },
+    {
+      "id": "t07",
+      "tax": "CIVA",
+      "article": "6",
+      "question": "A minha empresa faz programação informática para clientes nos Estados Unidos. Temos de cobrar IVA nessas faturas?",
+      "expected": [
+        "civa-informacao-3773",
+        "civa-informacao_13509",
+        "civa-informacao-4278",
+        "civa-informacao_15658"
+      ]
+    },
+    {
+      "id": "t08",
+      "tax": "CIVA",
+      "article": "21",
+      "question": "A empresa vai comprar um carro 100% elétrico. Pode recuperar o IVA pago na compra?",
+      "expected": [
+        "civa-piv_28949",
+        "civa-informacao_8433",
+        "civa-informacao-9577",
+        "civa-piv_26763",
+        "civa-informacao_15520",
+        "civa-piv_29346"
+      ]
+    },
+    {
+      "id": "t09",
+      "tax": "CIRC",
+      "article": "43",
+      "question": "A minha empresa quer pagar um seguro de saúde a todos os trabalhadores efetivos. Esse custo conta como gasto no IRC?",
+      "expected": [
+        "circ-piv_25976",
+        "circ-piv_12659_3139_2017",
+        "circ-piv_14217_2018_003021_dsirc",
+        "circ-fd_piv_24493"
+      ]
+    },
+    {
+      "id": "t10",
+      "tax": "CIRC",
+      "article": "88",
+      "question": "A sociedade comprou este ano um carro elétrico caro para o gerente. Paga tributação autónoma sobre as despesas com o carro?",
+      "expected": [
+        "circ-piv_28789"
+      ]
+    },
+    {
+      "id": "t11",
+      "tax": "CIRC",
+      "article": "23",
+      "question": "A empresa foi enganada num email falso e transferiu dinheiro para a conta de um burlão. Podemos abater esse prejuízo no IRC?",
+      "expected": [
+        "circ-piv_27626",
+        "circ-piv_24043",
+        "circ-piv_24211",
+        "circ-piv_25264",
+        "circ-piv_29419"
+      ]
+    },
+    {
+      "id": "t12",
+      "tax": "CIRC",
+      "article": "6",
+      "question": "Tenho uma sociedade de advogados com outros colegas. A sociedade paga IRC ou os lucros são tributados no IRS de cada sócio?",
+      "expected": [
+        "circ-piv_27017",
+        "circ-fd_piv_16150",
+        "circ-piv_29244",
+        "circ-piv_25581",
+        "circ-piv_27684"
+      ]
+    },
+    {
+      "id": "t13",
+      "tax": "CIRC",
+      "article": "10",
+      "question": "Somos uma associação sem fins lucrativos isenta de IRC e recebemos rendas de um prédio que nos deixaram. Essas rendas também estão isentas?",
+      "expected": [
+        "circ-piv_28454",
+        "circ-fd_circ_536_2017",
+        "circ-piv_30113"
+      ]
+    },
+    {
+      "id": "t14",
+      "tax": "CIMT",
+      "article": "9",
+      "question": "Tenho 29 anos e vou comprar a minha primeira casa, mas a casa dos meus pais, que morreram, ainda não foi partilhada entre mim e os meus irmãos. Isso tira-me o IMT Jovem?",
+      "expected": [
+        "cimt-piv_26875",
+        "cimt-piv_26991",
+        "cimt-piv_30175"
+      ]
+    },
+    {
+      "id": "t15",
+      "tax": "CIMT",
+      "article": "11",
+      "question": "Comprei casa com isenção do IMT Jovem e agora vou trabalhar para outra cidade longe dali. Se sair da casa antes dos seis anos perco a isenção?",
+      "expected": [
+        "cimt-piv_28979",
+        "cimt-piv_29666"
+      ]
+    },
+    {
+      "id": "t16",
+      "tax": "CIMT",
+      "article": "2",
+      "question": "Vou comprar a quota de um sócio numa empresa que tem prédios e fico com 80% do capital. Tenho de pagar IMT?",
+      "expected": [
+        "cimt-imt_iv_12514",
+        "cimt-imt_iv_8567",
+        "cimt-piv_25060"
+      ]
+    },
+    {
+      "id": "t17",
+      "tax": "SELO",
+      "article": "1",
+      "question": "A minha loja vai sortear vales de compras pelos clientes. Há imposto do selo sobre esses prémios?",
+      "expected": [
+        "selo-is_iv_19706",
+        "selo-is_iv_12749",
+        "selo-is_iv_23309",
+        "selo-is_ive-14602",
+        "selo-is_ive_14735",
+        "selo-ive_17955"
+      ]
+    },
+    {
+      "id": "t18",
+      "tax": "SELO",
+      "article": "1",
+      "question": "Os meus pais vão dar-me dinheiro para ajudar a comprar casa. Tenho de declarar essa doação às Finanças?",
+      "expected": [
+        "selo-is_iv_21902"
+      ]
+    },
+    {
+      "id": "t19",
+      "tax": "SELO",
+      "article": "7",
+      "question": "As empresas do nosso grupo juntam o dinheiro numa conta central e emprestam umas às outras. Esses empréstimos pagam imposto do selo?",
+      "expected": [
+        "selo-is_iv-_23678",
+        "selo-is_iv_18431",
+        "selo-iv_17783",
+        "selo-iv_22551",
+        "selo-is_iv_8033",
+        "selo-is_iv_-9461"
+      ]
+    },
+    {
+      "id": "t20",
+      "tax": "CIMI",
+      "article": "8",
+      "question": "A casa está em nome do meu filho, mas eu fiquei com o direito de habitação para toda a vida. Quem tem de pagar o IMI?",
+      "expected": [
+        "cimi-ive_10653_cimi_art_8",
+        "cimi-ive_7725_cimi_art_8",
+        "cimi-imi_iv_20032"
+      ]
+    },
+    {
+      "id": "t21",
+      "tax": "CIMI",
+      "article": "6",
+      "question": "Passei o meu apartamento para alojamento local. Tenho de mudar a afetação na caderneta predial de habitação para serviços?",
+      "expected": [
+        "cimi-ive_9931_cimi_art_6",
+        "cimi-ive_10728_cimi_art_6"
+      ]
+    },
+    {
+      "id": "t22",
+      "tax": "EBF",
+      "article": "46",
+      "question": "Comprei uma casa para viver com a minha família. Tenho direito a ficar uns anos sem pagar IMI e preciso de pedir?",
+      "expected": [
+        "ebf-ive_13041_ebf_art_46",
+        "ebf-ficha-doutrinaria_informacao-vinculativa-proc-867_09",
+        "ebf-ive_5784_ebf_art46",
+        "ebf-ive_12934_ebf_art46"
+      ]
+    },
+    {
+      "id": "t23",
+      "tax": "EBF",
+      "article": "45",
+      "question": "Comprei um prédio antigo para reabilitar e não paguei IMT. Até quando tenho de começar as obras para não perder a isenção?",
+      "expected": [
+        "ebf-imt_iv_10910",
+        "ebf-imt_iv_6421"
+      ]
+    },
+    {
+      "id": "t24",
+      "tax": "CIUC",
+      "article": "5",
+      "question": "A minha mulher tem uma incapacidade de 80%, mas o carro está registado em meu nome. Podemos ficar isentos do IUC?",
+      "expected": [
+        "ciuc-ive_3375-786_2012",
+        "ciuc-ive-3221-309_2012"
+      ]
+    }
+  ]
+}

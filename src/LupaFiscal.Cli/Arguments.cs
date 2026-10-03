@@ -5,7 +5,7 @@ namespace LupaFiscal.Cli;
 /// <summary>Parses "--name value" options and "--flag" switches.</summary>
 internal sealed class Arguments
 {
-    private static readonly HashSet<string> Flags = ["retry-failed", "use-cached-listing", "list-failed", "record"];
+    private static readonly HashSet<string> Flags = ["retry-failed", "use-cached-listing", "list-failed", "record", "freeze", "all"];
 
     private readonly Dictionary<string, string?> _values;
 

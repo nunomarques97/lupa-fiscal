@@ -14,7 +14,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { FacetsResponse, SearchApi } from './api';
 import { FilterFields } from './filter-fields';
-import { articleLabel, rulingCount, taxLabel } from './format';
+import { articlePhrase, rulingCount, taxLabel } from './format';
 import { ResultItem } from './result-item';
 import { MAX_QUERY_LENGTH, NO_FILTERS, Filters, SearchParams, paramsFromUrl, paramsToUrl, sameParams } from './search-params';
 import { SearchStore } from './search-store';
@@ -86,13 +86,19 @@ export class App {
   protected readonly activeFilterCount = computed(() => Object.values(this.filters()).filter(Boolean).length);
   protected readonly activeFilterSummary = computed(() => {
     const { tax, article, year } = this.filters();
-    const parts = [tax ? taxLabel(tax) : '', article ? `artigo ${articleLabel(article)}` : '', year].filter(Boolean);
+    const parts = [tax ? taxLabel(tax) : '', article ? articlePhrase(article) : '', year].filter(Boolean);
     return parts.length ? parts.join(' · ') : 'Sem filtros';
   });
 
   constructor() {
     const route = inject(ActivatedRoute);
-    route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(map => this.restore(paramsFromUrl(map)));
+    route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(map => {
+      this.restore(paramsFromUrl(map));
+      // An article without a tax is dropped (article numbers belong to one tax code); so is its URL parameter.
+      if (map.has('article') && !this.filters().article) {
+        void this.router.navigate([], { queryParams: { article: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      }
+    });
     void this.loadFacets();
 
     const media = typeof matchMedia === 'function' ? matchMedia(NARROW) : null;

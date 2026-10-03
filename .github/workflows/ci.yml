@@ -45,6 +45,9 @@ jobs:
       - name: Test the docs checks
         run: node --test scripts/validate-docs.test.mjs
 
+      - name: Test the sources probe helpers (offline, synthetic pages)
+        run: node --test scripts/sources-probe.test.mjs
+
       - name: Check that no model or corpus is present
         shell: pwsh
         run: |

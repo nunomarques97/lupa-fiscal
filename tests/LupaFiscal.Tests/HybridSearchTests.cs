@@ -21,7 +21,24 @@ public sealed class HybridSearchTests : IDisposable
         return new IndexBuilder(database, _embedder, options ?? new ChunkingOptions(), TextWriter.Null).Build(store, CancellationToken.None);
     }
 
+    private IndexBuildSummary BuildTaxes(IEnumerable<TestCorpus.Ruling> rulings, IReadOnlyCollection<string>? embedTaxes = null)
+    {
+        var stores = TestCorpus.WriteTaxes(_temp.Path, rulings);
+        using var database = IndexDatabase.OpenForWrite(IndexPath);
+        return new IndexBuilder(database, _embedder, new ChunkingOptions(), TextWriter.Null)
+            .Build(stores, CancellationToken.None, embedTaxes);
+    }
+
+    private IReadOnlyList<IndexStatusReport> StatusOfTaxes()
+    {
+        var stores = new[] { "CIRS", "CIVA" }.Select(tax => TestCorpus.Store(_temp.Path, tax)).ToList();
+        using var database = IndexDatabase.OpenForWrite(IndexPath);
+        return IndexStatusReport.Compute(database, stores, ["CIRS", "CIVA"], _embedder.ModelId, _embedder.Dimensions, new ChunkingOptions());
+    }
+
     private HybridSearcher Searcher() => HybridSearcher.Open(IndexPath, _embedder);
+
+    private static List<string> Ids(SearchResult result) => result.Hits.Select(h => h.RulingId).ToList();
 
     private long Scalar(string sql)
     {
@@ -30,6 +47,27 @@ public sealed class HybridSearchTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         return (long)command.ExecuteScalar()!;
+    }
+
+    private List<string> Strings(string sql)
+    {
+        using var connection = new SqliteConnection(IndexDatabase.ConnectionString(IndexPath, readOnly: true));
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        using var reader = command.ExecuteReader();
+        var values = new List<string>();
+        while (reader.Read()) values.Add(reader.GetString(0));
+        return values;
+    }
+
+    private void Execute(string sql)
+    {
+        using var connection = new SqliteConnection(IndexDatabase.ConnectionString(IndexPath, readOnly: false));
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
     }
 
     [Fact]
@@ -46,6 +84,10 @@ public sealed class HybridSearchTests : IDisposable
         Assert.Equal(5, Scalar("SELECT COUNT(*) FROM chunks WHERE ruling_id = 'piv_90001'"));
         // Stored offsets point into the stored (normalised) body.
         Assert.Equal(0, Scalar("SELECT COUNT(*) FROM chunks c JOIN rulings r ON r.id = c.ruling_id WHERE substr(r.body, c.start_offset + 1, c.end_offset - c.start_offset) <> c.text"));
+
+        var searcher = Searcher();
+        Assert.Equal(summary.ChunksWritten, searcher.ChunkCount);
+        Assert.Equal((long)summary.ChunksWritten * _embedder.Dimensions * sizeof(float), searcher.VectorBytes);
     }
 
     [Fact]
@@ -118,6 +160,152 @@ public sealed class HybridSearchTests : IDisposable
     }
 
     [Fact]
+    public void AnIdenticalPdfListedByTwoTaxesIsStoredOnceAndASharedFileNameIsNot()
+    {
+        var summary = BuildTaxes(TestCorpus.TwoTaxes);
+        var embedded = _embedder.PassagesEmbedded;
+        var ids = Strings("SELECT id FROM rulings ORDER BY id");
+
+        // 4 CIRS + 3 extracted CIVA listings; the CIVA copy of piv_90001 is a listing, not a ruling.
+        Assert.Equal((6, 7, 1, 6), (summary.Rulings, summary.Listings, summary.Merged, summary.Embedded));
+        Assert.Equal(["civa-piv_90002", "civa-piv_95002", "piv_90001", "piv_90002", "piv_90003", "piv_90004"], ids);
+        Assert.Equal(["civa-piv_95001|piv_90001|CIVA|21", "piv_90001|piv_90001|CIRS|78-D"],
+            Strings("SELECT id || '|' || ruling_id || '|' || tax || '|' || article FROM listings WHERE ruling_id = 'piv_90001' ORDER BY id"));
+        Assert.Equal(Scalar("SELECT COUNT(*) FROM chunks"), embedded);
+        Assert.Equal("CIRS", Strings("SELECT tax FROM rulings WHERE id = 'piv_90001'").Single());
+        Assert.Equal(TestCorpus.PdfSha256(TestCorpus.Education), Strings("SELECT pdf_sha256 FROM rulings WHERE id = 'piv_90001'").Single());
+        // Same file name (PIV_90002.pdf), different content: two rulings with distinct ids and sources.
+        Assert.Equal(2, Scalar("SELECT COUNT(DISTINCT source_url) FROM rulings WHERE id IN ('piv_90002', 'civa-piv_90002')"));
+
+        var status = StatusOfTaxes();
+        Assert.Equal([("CIRS", 4, 4, 0), ("CIVA", 3, 3, 1)], status.Select(s => (s.Tax, s.Extracted, s.Indexed, s.Merged)));
+        Assert.All(status, s => Assert.True(s.IsComplete));
+
+        // Stable across runs: nothing is embedded again and the ids do not change.
+        var again = BuildTaxes(TestCorpus.TwoTaxes);
+        Assert.Equal((0, 6), (again.Embedded, again.Unchanged));
+        Assert.Equal(embedded, _embedder.PassagesEmbedded);
+        Assert.Equal(ids, Strings("SELECT id FROM rulings ORDER BY id"));
+    }
+
+    [Fact]
+    public void AnEarlierTaxAddedLaterBecomesTheCanonicalRuling()
+    {
+        BuildTaxes(TestCorpus.Civa);
+        Assert.Equal(1, Scalar("SELECT COUNT(*) FROM rulings WHERE id = 'civa-piv_95001'"));
+
+        var summary = BuildTaxes(TestCorpus.TwoTaxes);
+
+        // CIRS comes first in source order, so its id wins and the CIVA ruling becomes one of its listings.
+        Assert.Equal(1, summary.Removed);
+        Assert.Equal(0, Scalar("SELECT COUNT(*) FROM rulings WHERE id = 'civa-piv_95001'"));
+        Assert.Equal(0, Scalar("SELECT COUNT(*) FROM chunks WHERE ruling_id = 'civa-piv_95001'"));
+        Assert.Equal(["piv_90001"], Strings("SELECT ruling_id FROM listings WHERE id = 'civa-piv_95001'"));
+        Assert.Equal(Scalar("SELECT COUNT(*) FROM chunks"), Scalar("SELECT COUNT(*) FROM chunks_fts"));
+        Assert.All(StatusOfTaxes(), s => Assert.True(s.IsComplete));
+    }
+
+    [Fact]
+    public void UpgradingAVersion1IndexMigratesInPlaceWithoutReembeddingCirs()
+    {
+        BuildIndex();
+        Execute("""
+            DROP TABLE listings;
+            ALTER TABLE rulings DROP COLUMN pdf_sha256;
+            UPDATE meta SET value = '1' WHERE key = 'schema_version';
+            """);
+        Assert.Throws<InvalidDataException>(() => HybridSearcher.Open(IndexPath, _embedder));
+        var cirsChunks = Scalar("SELECT COUNT(*) FROM chunks");
+        var cirsChunkIds = Scalar("SELECT SUM(id) FROM chunks");
+        var embedded = _embedder.PassagesEmbedded;
+
+        var summary = BuildTaxes(TestCorpus.TwoTaxes);
+
+        // Only the two new CIVA rulings are embedded; the CIVA copy of piv_90001 reuses its chunks.
+        Assert.Equal((2, 4), (summary.Embedded, summary.Unchanged));
+        Assert.Equal(Scalar("SELECT COUNT(*) FROM chunks WHERE ruling_id LIKE 'civa-%'"), _embedder.PassagesEmbedded - embedded);
+        Assert.Equal(cirsChunkIds, Scalar("SELECT SUM(id) FROM chunks WHERE ruling_id LIKE 'piv_%'"));
+        Assert.Equal(cirsChunks, Scalar("SELECT COUNT(*) FROM chunks WHERE ruling_id LIKE 'piv_%'"));
+        Assert.Equal(["2"], Strings("SELECT value FROM meta WHERE key = 'schema_version'"));
+        Assert.Equal(7, Scalar("SELECT COUNT(*) FROM listings"));
+        Assert.All(StatusOfTaxes(), s => Assert.True(s.IsComplete));
+        Assert.Equal("piv_90001", Searcher().Search("despesas de educação", new SearchFilters("CIVA", "21"), new SearchOptions()).Hits.Single().RulingId);
+    }
+
+    [Fact]
+    public void MigratingAVersion1IndexAloneEmbedsNothing()
+    {
+        BuildIndex();
+        Execute("""
+            DROP TABLE listings;
+            ALTER TABLE rulings DROP COLUMN pdf_sha256;
+            UPDATE meta SET value = '1' WHERE key = 'schema_version';
+            """);
+        var embedded = _embedder.PassagesEmbedded;
+
+        var summary = BuildIndex();
+
+        Assert.Equal((0, 4), (summary.Embedded, summary.Unchanged));
+        Assert.Equal(embedded, _embedder.PassagesEmbedded);
+        Assert.Equal(4, Scalar("SELECT COUNT(*) FROM listings WHERE id = ruling_id AND tax = 'CIRS'"));
+    }
+
+    [Fact]
+    public void EmbedTaxesLimitsWhatIsEmbeddedButNotTheMerge()
+    {
+        var civaOnly = BuildTaxes(TestCorpus.TwoTaxes, embedTaxes: ["CIVA"]);
+
+        // The CIVA listings resolve to piv_90001, civa-piv_90002 and civa-piv_95002.
+        Assert.Equal(3, civaOnly.Embedded);
+        var partial = StatusOfTaxes();
+        Assert.Equal((3, 0, false), (partial[0].Missing, partial[1].Missing, partial[0].IsComplete));
+        Assert.True(partial[1].IsComplete);
+
+        var rest = BuildTaxes(TestCorpus.TwoTaxes);
+        Assert.Equal((3, 3), (rest.Embedded, rest.Unchanged));
+        Assert.All(StatusOfTaxes(), s => Assert.True(s.IsComplete));
+    }
+
+    [Theory]
+    [InlineData(SearchMode.Keyword)]
+    [InlineData(SearchMode.Vector)]
+    [InlineData(SearchMode.Hybrid)]
+    public void TaxAndArticleFiltersMatchListingsInEveryMode(SearchMode mode)
+    {
+        BuildTaxes(TestCorpus.TwoTaxes);
+        var searcher = Searcher();
+        var options = new SearchOptions { Mode = mode, Limit = 50 };
+        const string Query = "rendimentos imóvel imóveis despesas pensões educação isenção instalação bens";
+        List<string> Find(SearchFilters filters) => Ids(searcher.Search(Query, filters, options)).Order(StringComparer.Ordinal).ToList();
+
+        Assert.Equal(["civa-piv_90002", "civa-piv_95002", "piv_90001"], Find(new SearchFilters("CIVA")));
+        Assert.Equal(["piv_90001", "piv_90002", "piv_90003", "piv_90004"], Find(new SearchFilters("cirs")));
+        // Article 8 in both codes: only the selected tax's ruling.
+        Assert.Equal(["piv_90003"], Find(new SearchFilters("CIRS", "8")));
+        Assert.Equal(["civa-piv_95002"], Find(new SearchFilters("CIVA", "8")));
+        // A merged ruling is found with the article of each of its listings, and only that.
+        Assert.Equal(["piv_90001"], Find(new SearchFilters("CIVA", "21")));
+        Assert.Equal(["piv_90001"], Find(new SearchFilters("CIRS", "78-d")));
+        Assert.Empty(Find(new SearchFilters("CIVA", "78-D")));
+        Assert.Empty(Find(new SearchFilters("CIRS", "21")));
+        Assert.Equal(["civa-piv_95002"], Find(new SearchFilters(Year: 2025)));
+        Assert.Equal(["civa-piv_90002", "piv_90001"], Find(new SearchFilters("CIVA", Year: 2024)));
+        Assert.Empty(Find(new SearchFilters("IVA")));
+        // Results carry the display tax.
+        Assert.Equal("CIRS", searcher.Search(Query, new SearchFilters("CIVA", "21"), options).Hits.Single().Tax);
+    }
+
+    [Fact]
+    public void AnArticleFilterWithoutATaxIsRejected()
+    {
+        BuildTaxes(TestCorpus.TwoTaxes);
+        var searcher = Searcher();
+
+        Assert.Throws<ArgumentException>(() => searcher.Search("despesas", new SearchFilters(Article: "8"), new SearchOptions()));
+        Assert.Throws<ArgumentException>(() => searcher.Search("despesas", new SearchFilters(Article: "8", Year: 2024), new SearchOptions()));
+    }
+
+    [Fact]
     public void HybridSearchFindsTheRelevantRulingWithHighlightsAndMetadata()
     {
         BuildIndex();
@@ -153,7 +341,7 @@ public sealed class HybridSearchTests : IDisposable
         const string Query = "rendimentos imóvel despesas pensões";
 
         var all = searcher.Search(Query, new SearchFilters(), options).Hits.Select(h => h.RulingId).ToHashSet();
-        var byArticle = searcher.Search(Query, new SearchFilters(Article: "8"), options).Hits;
+        var byArticle = searcher.Search(Query, new SearchFilters("CIRS", "8"), options).Hits;
         var byYear = searcher.Search(Query, new SearchFilters(Year: 2023), options).Hits;
         var byTax = searcher.Search(Query, new SearchFilters(Tax: "cirs"), options).Hits;
         var otherTax = searcher.Search(Query, new SearchFilters(Tax: "IVA"), options).Hits;

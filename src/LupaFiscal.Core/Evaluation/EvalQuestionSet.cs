@@ -4,15 +4,19 @@ using System.Text.Json;
 
 namespace LupaFiscal.Core.Evaluation;
 
-/// <summary>One eval question and the rulings that answer it (any of them is a correct answer).</summary>
-public sealed record EvalQuestion(string Id, string Question, string Article, IReadOnlyList<string> Expected);
+/// <summary>
+/// One eval question and the rulings that answer it (any of them is a correct answer). <paramref name="Tax"/>
+/// is the tax code of the main ruling, empty in a single-tax set such as the CIRS one.
+/// </summary>
+public sealed record EvalQuestion(string Id, string Question, string Article, IReadOnlyList<string> Expected, string Tax = "");
 
 /// <summary>
-/// The eval question file (eval/questions.json): {"questions": [{"id", "question", "article",
-/// "expected": [ruling ids]}]}. Loading validates the structure; references to the index are
-/// checked separately with <see cref="UnknownRulings"/>. <see cref="Hash"/> identifies the
+/// The eval question file (eval/questions.json): {"questions": [{"id", "question", "tax", "article",
+/// "expected": [ruling ids]}]}, where "tax" and "article" are optional. Loading validates the
+/// structure; references to the index are checked separately with <see cref="UnknownRulings"/>. <see cref="Hash"/> identifies the
 /// questions and their expected answers independently of JSON formatting, so a frozen set can be
-/// told apart from an edited one.
+/// told apart from an edited one. The tax is a report label outside the hash: search runs without
+/// filters, so it cannot change a score.
 /// </summary>
 public sealed class EvalQuestionSet
 {
@@ -77,7 +81,8 @@ public sealed class EvalQuestionSet
                 {
                     throw new InvalidDataException($"{where}: question is longer than {MaxQuestionLength} characters.");
                 }
-                var article = item.TryGetProperty("article", out var a) && a.ValueKind == JsonValueKind.String ? a.GetString()!.Trim() : "";
+                var article = OptionalString(item, "article");
+                var tax = OptionalString(item, "tax");
 
                 if (!item.TryGetProperty("expected", out var expectedItems) || expectedItems.ValueKind != JsonValueKind.Array)
                 {
@@ -101,7 +106,7 @@ public sealed class EvalQuestionSet
 
                 if (!ids.Add(id)) throw new InvalidDataException($"{source}: question id {id} is used twice.");
                 if (!texts.Add(question)) throw new InvalidDataException($"{where}: the same question text appears twice.");
-                questions.Add(new EvalQuestion(id, question, article, expected));
+                questions.Add(new EvalQuestion(id, question, article, expected, tax));
             }
 
             if (questions.Count == 0) throw new InvalidDataException($"{source}: the question list is empty.");
@@ -112,6 +117,9 @@ public sealed class EvalQuestionSet
     /// <summary>Expected rulings that are not in <paramref name="known"/> (the index), in file order.</summary>
     public IReadOnlyList<(string QuestionId, string RulingId)> UnknownRulings(IReadOnlySet<string> known) =>
         Questions.SelectMany(q => q.Expected.Where(id => !known.Contains(id)).Select(id => (q.Id, id))).ToList();
+
+    private static string OptionalString(JsonElement item, string name) =>
+        item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()!.Trim() : "";
 
     private static string RequiredString(JsonElement item, string name, string where)
     {

@@ -4,7 +4,7 @@
 // User-Agent. Nothing is written to disk. Exits non-zero on any failure.
 // Findings and field mapping: docs/research/gate0.md
 
-const USER_AGENT = 'LupaFiscal/0.1 (+https://github.com/nunomarques97/lupa-fiscal; open-source research crawler)';
+const USER_AGENT = 'LupaFiscal/0.2 (+https://github.com/nunomarques97/lupa-fiscal; open-source research crawler)';
 const ROBOTS_TOKEN = 'lupafiscal';
 const ORIGIN = 'https://info.portaldasfinancas.gov.pt';
 const ALLOWED_HOSTS = new Set(['info.portaldasfinancas.gov.pt']);

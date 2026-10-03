@@ -3,7 +3,7 @@
   "questionsHash": "a770f8c678378a66c71d927f5744144631cdc24accf97d2fa2e150be6f8195f7",
   "questionCount": 50,
   "expectedCount": 197,
-  "targetRecallAt10": 0.7,
+  "targetRecallAt10": 0.85,
   "iterations": [
     {
       "label": "baseline",
@@ -33,9 +33,38 @@
           "questions": 50
         }
       }
+    },
+    {
+      "label": "full index (13 taxes)",
+      "config": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60; index of 5790 rulings",
+      "note": "same retrieval parameters as the baseline; the index grew from 1189 CIRS rulings to 5790 rulings over 13 taxes. Not a tuning iteration.",
+      "recordedAt": "2026-10-03T00:06:20.2267722+00:00",
+      "modes": {
+        "keyword": {
+          "recallAt10": 0.74,
+          "mrrAt10": 0.5623333333333334,
+          "coverageAt10": 0.554047619047619,
+          "answered": 37,
+          "questions": 50
+        },
+        "vector": {
+          "recallAt10": 0.86,
+          "mrrAt10": 0.5951031746031746,
+          "coverageAt10": 0.6031428571428571,
+          "answered": 43,
+          "questions": 50
+        },
+        "hybrid": {
+          "recallAt10": 0.86,
+          "mrrAt10": 0.6318571428571429,
+          "coverageAt10": 0.6533571428571429,
+          "answered": 43,
+          "questions": 50
+        }
+      }
     }
   ],
-  "latestConfig": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60",
+  "latestConfig": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60; index of 5790 rulings",
   "latest": [
     {
       "id": "q01",
@@ -47,9 +76,9 @@
         "piv_30696"
       ],
       "firstExpectedRank": {
-        "keyword": 31,
+        "keyword": 25,
         "vector": null,
-        "hybrid": 18
+        "hybrid": 14
       },
       "hybridTop": [
         "piv_26895",
@@ -66,14 +95,14 @@
         "piv_28122"
       ],
       "firstExpectedRank": {
-        "keyword": 49,
+        "keyword": 38,
         "vector": 5,
-        "hybrid": 6
+        "hybrid": 5
       },
       "hybridTop": [
-        "piv_28298",
+        "piv_13963",
         "piv_23738",
-        "piv_25219"
+        "civa-informacao_14763"
       ]
     },
     {
@@ -98,14 +127,14 @@
         "piv_30678"
       ],
       "firstExpectedRank": {
-        "keyword": 14,
+        "keyword": 20,
         "vector": 27,
         "hybrid": 16
       },
       "hybridTop": [
         "piv_23220",
-        "piv_28882",
-        "piv_26689"
+        "piv_26689",
+        "piv_28882"
       ]
     },
     {
@@ -127,7 +156,7 @@
       ],
       "firstExpectedRank": {
         "keyword": 1,
-        "vector": 18,
+        "vector": 21,
         "hybrid": 6
       },
       "hybridTop": [
@@ -145,14 +174,14 @@
         "ficha_doutrinaria_piv_reinvestimento_noutro_em"
       ],
       "firstExpectedRank": {
-        "keyword": 8,
+        "keyword": 35,
         "vector": 9,
-        "hybrid": 1
+        "hybrid": 11
       },
       "hybridTop": [
-        "piv_30128",
         "piv_24380",
-        "piv_28882"
+        "piv_23738",
+        "piv_26964"
       ]
     },
     {
@@ -175,7 +204,7 @@
       "hybridTop": [
         "piv_29178",
         "piv_29169",
-        "piv_28209"
+        "piv_23199"
       ]
     },
     {
@@ -190,14 +219,14 @@
         "piv_23902"
       ],
       "firstExpectedRank": {
-        "keyword": 3,
+        "keyword": 1,
         "vector": 6,
         "hybrid": 2
       },
       "hybridTop": [
         "piv_24916",
         "piv_29093",
-        "piv_25758"
+        "piv_26447"
       ]
     },
     {
@@ -212,7 +241,7 @@
         "piv_12894"
       ],
       "firstExpectedRank": {
-        "keyword": 4,
+        "keyword": 3,
         "vector": 1,
         "hybrid": 1
       },
@@ -235,7 +264,7 @@
       ],
       "firstExpectedRank": {
         "keyword": 1,
-        "vector": 2,
+        "vector": 3,
         "hybrid": 2
       },
       "hybridTop": [
@@ -252,14 +281,14 @@
         "piv_29235"
       ],
       "firstExpectedRank": {
-        "keyword": 37,
+        "keyword": 25,
         "vector": 1,
-        "hybrid": 2
+        "hybrid": 1
       },
       "hybridTop": [
-        "piv_21697",
         "piv_29235",
-        "piv_13094"
+        "piv_21697",
+        "piv_22683"
       ]
     },
     {
@@ -295,8 +324,8 @@
       },
       "hybridTop": [
         "piv_25747",
-        "piv_28509",
-        "piv_25439"
+        "circ-piv_25762",
+        "piv_28509"
       ]
     },
     {
@@ -314,12 +343,12 @@
       "firstExpectedRank": {
         "keyword": 1,
         "vector": 2,
-        "hybrid": 4
+        "hybrid": 2
       },
       "hybridTop": [
         "piv_27489",
-        "piv_27517",
-        "piv_23723"
+        "piv_20379",
+        "piv_27517"
       ]
     },
     {
@@ -330,14 +359,14 @@
         "piv_29073"
       ],
       "firstExpectedRank": {
-        "keyword": 4,
-        "vector": 24,
-        "hybrid": 6
+        "keyword": 27,
+        "vector": 34,
+        "hybrid": 11
       },
       "hybridTop": [
-        "piv_21664",
-        "piv_24793",
-        "piv_25270"
+        "circ-fd_piv_17782",
+        "circ-piv_25701",
+        "piv_21664"
       ]
     },
     {
@@ -365,14 +394,14 @@
         "piv_26016"
       ],
       "firstExpectedRank": {
-        "keyword": 2,
+        "keyword": 1,
         "vector": 3,
-        "hybrid": 4
+        "hybrid": 1
       },
       "hybridTop": [
-        "piv_26638",
+        "piv_26016",
         "piv_27726",
-        "piv_27876"
+        "piv_26638"
       ]
     },
     {
@@ -401,14 +430,14 @@
         "piv_29319"
       ],
       "firstExpectedRank": {
-        "keyword": 2,
+        "keyword": 1,
         "vector": 1,
         "hybrid": 1
       },
       "hybridTop": [
         "piv_30016",
-        "piv_29525",
-        "piv_29134"
+        "piv_29134",
+        "piv_29525"
       ]
     },
     {
@@ -420,14 +449,14 @@
         "piv_28538"
       ],
       "firstExpectedRank": {
-        "keyword": 17,
+        "keyword": 11,
         "vector": 2,
-        "hybrid": 4
+        "hybrid": 3
       },
       "hybridTop": [
-        "piv_27751",
+        "piv_27746",
         "piv_26968",
-        "piv_27746"
+        "piv_28538"
       ]
     },
     {
@@ -438,14 +467,14 @@
         "piv_22474"
       ],
       "firstExpectedRank": {
-        "keyword": 4,
+        "keyword": 3,
         "vector": 1,
         "hybrid": 2
       },
       "hybridTop": [
         "piv_28879",
         "piv_22474",
-        "piv_13936_cat_b_cirs_1519_cirs_analise_sensorial_rolhas"
+        "circ-piv_25135"
       ]
     },
     {
@@ -462,8 +491,8 @@
       },
       "hybridTop": [
         "piv_12875",
-        "piv_12875_premios_competicoes_desportivas_columbofilas",
-        "piv_27631"
+        "selo-is_iv_23309",
+        "piv_12875_premios_competicoes_desportivas_columbofilas"
       ]
     },
     {
@@ -494,13 +523,13 @@
       ],
       "firstExpectedRank": {
         "keyword": 1,
-        "vector": 3,
-        "hybrid": 2
+        "vector": 10,
+        "hybrid": 4
       },
       "hybridTop": [
-        "piv_16667",
-        "piv_24854",
-        "piv_25310"
+        "selo-is_iv_19759",
+        "cimt-imt_iv_6393",
+        "circ-piv_11669"
       ]
     },
     {
@@ -525,9 +554,9 @@
         "hybrid": 1
       },
       "hybridTop": [
+        "piv_27140",
         "piv_24773",
-        "piv_25200",
-        "piv_27140"
+        "piv_25200"
       ]
     },
     {
@@ -538,13 +567,13 @@
         "piv_27083"
       ],
       "firstExpectedRank": {
-        "keyword": 22,
+        "keyword": 25,
         "vector": 8,
-        "hybrid": 15
+        "hybrid": 19
       },
       "hybridTop": [
-        "piv_27835",
         "piv_29421",
+        "piv_27835",
         "piv_25797"
       ]
     },
@@ -557,14 +586,14 @@
         "piv_30545"
       ],
       "firstExpectedRank": {
-        "keyword": 3,
+        "keyword": 6,
         "vector": 1,
         "hybrid": 2
       },
       "hybridTop": [
         "piv_25058",
         "piv_30545",
-        "piv_30549"
+        "piv_26547"
       ]
     },
     {
@@ -581,8 +610,8 @@
       },
       "hybridTop": [
         "piv_23775",
-        "piv_26713",
-        "piv_25730"
+        "circ-piv_26161",
+        "civa-piv_23846"
       ]
     },
     {
@@ -593,14 +622,14 @@
         "piv_30373"
       ],
       "firstExpectedRank": {
-        "keyword": 15,
+        "keyword": 13,
         "vector": 2,
         "hybrid": 4
       },
       "hybridTop": [
         "piv_23518",
         "piv_25748",
-        "piv_29143"
+        "piv_26804"
       ]
     },
     {
@@ -611,7 +640,7 @@
         "piv_25752"
       ],
       "firstExpectedRank": {
-        "keyword": 1,
+        "keyword": 3,
         "vector": 1,
         "hybrid": 1
       },
@@ -629,7 +658,7 @@
         "piv_29979"
       ],
       "firstExpectedRank": {
-        "keyword": 4,
+        "keyword": 5,
         "vector": 3,
         "hybrid": 3
       },
@@ -648,13 +677,13 @@
       ],
       "firstExpectedRank": {
         "keyword": 2,
-        "vector": 12,
-        "hybrid": 3
+        "vector": 23,
+        "hybrid": 4
       },
       "hybridTop": [
         "piv_26313",
         "piv_13400",
-        "piv_30631"
+        "piv_21664"
       ]
     },
     {
@@ -666,13 +695,13 @@
       ],
       "firstExpectedRank": {
         "keyword": 1,
-        "vector": 2,
+        "vector": 3,
         "hybrid": 1
       },
       "hybridTop": [
         "piv_24224",
-        "piv_26463",
-        "piv_15527"
+        "piv_15527",
+        "piv_26463"
       ]
     },
     {
@@ -685,14 +714,14 @@
         "piv_28723"
       ],
       "firstExpectedRank": {
-        "keyword": 1,
-        "vector": 5,
-        "hybrid": 3
+        "keyword": 2,
+        "vector": 7,
+        "hybrid": 6
       },
       "hybridTop": [
         "piv_28122",
         "piv_29065",
-        "piv_29518"
+        "dsri-piv_6777_2019"
       ]
     },
     {
@@ -755,7 +784,7 @@
         "piv_13428"
       ],
       "firstExpectedRank": {
-        "keyword": 1,
+        "keyword": 2,
         "vector": 1,
         "hybrid": 1
       },
@@ -777,14 +806,14 @@
         "piv_25584"
       ],
       "firstExpectedRank": {
-        "keyword": 3,
-        "vector": 3,
-        "hybrid": 1
+        "keyword": 29,
+        "vector": 10,
+        "hybrid": 2
       },
       "hybridTop": [
+        "civa-vinculativa-22521",
         "piv_30890",
-        "piv_28189",
-        "piv_15882"
+        "civa-piv_27575"
       ]
     },
     {
@@ -827,7 +856,7 @@
       "hybridTop": [
         "piv_26640",
         "piv_14390",
-        "piv_26278"
+        "piv_30032"
       ]
     },
     {
@@ -840,14 +869,14 @@
         "piv_14425"
       ],
       "firstExpectedRank": {
-        "keyword": 3,
+        "keyword": 4,
         "vector": 1,
-        "hybrid": 3
+        "hybrid": 2
       },
       "hybridTop": [
-        "piv_26565",
         "piv_30151",
-        "piv_25652"
+        "piv_25652",
+        "piv_26565"
       ]
     },
     {
@@ -864,8 +893,8 @@
       },
       "hybridTop": [
         "piv_29288",
-        "piv_28952",
-        "piv_27843"
+        "piv_27843",
+        "piv_27730"
       ]
     },
     {
@@ -883,14 +912,14 @@
         "piv_14984"
       ],
       "firstExpectedRank": {
-        "keyword": 12,
-        "vector": 6,
-        "hybrid": 5
+        "keyword": 16,
+        "vector": 7,
+        "hybrid": 7
       },
       "hybridTop": [
         "piv_22647",
         "piv_26256",
-        "p_2010000919"
+        "dsri-ficha_doutrinaria_piv_residencia_art_4_cdt_uk"
       ]
     },
     {
@@ -912,7 +941,7 @@
       "hybridTop": [
         "piv_28318",
         "piv_28516",
-        "piv_27109"
+        "piv_30103"
       ]
     },
     {
@@ -932,7 +961,7 @@
       "hybridTop": [
         "piv_29065",
         "piv_28615",
-        "piv_26895"
+        "piv_23932"
       ]
     },
     {
@@ -943,14 +972,14 @@
         "piv_30289"
       ],
       "firstExpectedRank": {
-        "keyword": 2,
+        "keyword": 1,
         "vector": 1,
-        "hybrid": 2
+        "hybrid": 1
       },
       "hybridTop": [
-        "piv_27251",
         "piv_30289",
-        "piv_30151"
+        "piv_27251",
+        "piv_14687"
       ]
     },
     {
@@ -980,13 +1009,13 @@
       ],
       "firstExpectedRank": {
         "keyword": null,
-        "vector": 43,
+        "vector": null,
         "hybrid": null
       },
       "hybridTop": [
-        "piv_26895",
+        "circ-circ_069_07",
         "piv_29146",
-        "piv_26167"
+        "piv_26895"
       ]
     },
     {
@@ -1003,8 +1032,8 @@
       },
       "hybridTop": [
         "piv_29057",
-        "piv_23072",
-        "piv_12786"
+        "civa-informacao-1276",
+        "civa-informacao_15519"
       ]
     },
     {
@@ -1017,14 +1046,14 @@
         "piv_28957"
       ],
       "firstExpectedRank": {
-        "keyword": 1,
+        "keyword": 2,
         "vector": 3,
         "hybrid": 1
       },
       "hybridTop": [
-        "piv_28957",
         "piv_28585",
-        "piv_26262"
+        "piv_28957",
+        "inf-vinculativa-p_2010006244"
       ]
     },
     {
@@ -1042,8 +1071,8 @@
       },
       "hybridTop": [
         "piv_13418",
-        "piv_26547",
-        "piv_13599"
+        "civa-piv_25792",
+        "civa-piv_25928"
       ]
     },
     {
@@ -1074,28 +1103,28 @@
         "piv_09958"
       ],
       "firstExpectedRank": {
-        "keyword": 8,
+        "keyword": 6,
         "vector": 1,
         "hybrid": 1
       },
       "hybridTop": [
-        "piv_09958",
         "piv_19849",
+        "piv_09958",
         "piv_13775"
       ]
     }
   ],
   "bench": {
-    "recordedAt": "2026-10-02T15:02:09.6069707+00:00",
+    "recordedAt": "2026-10-02T23:54:07.1551834+00:00",
     "config": "model intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3; chunker v1, max 512 tokens, overlap 64; 100 candidates per list, RRF k 60",
     "questionsHash": "a770f8c678378a66c71d927f5744144631cdc24accf97d2fa2e150be6f8195f7",
     "queries": 50,
-    "loadMs": 1945.0818,
-    "warmupMs": 103.143,
-    "p50Ms": 32.2033,
-    "p95Ms": 39.9173,
-    "maxMs": 52.5368,
-    "meanMs": 31.836850000000005,
+    "loadMs": 2288.788,
+    "warmupMs": 184.9725,
+    "p50Ms": 77.3241,
+    "p95Ms": 120.1196,
+    "maxMs": 130.9671,
+    "meanMs": 79.07140399999997,
     "limitMs": 1000
   }
 }
