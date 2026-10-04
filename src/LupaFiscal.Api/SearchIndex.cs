@@ -24,6 +24,9 @@ public sealed class SearchIndex
 
     public FacetsResponse Facets { get; }
 
+    /// <summary>The hybrid searcher, shared with the answer pipeline so both run the same search.</summary>
+    internal HybridSearcher Searcher => _searcher;
+
     public int Rulings => _searcher.RulingCount;
 
     public int Chunks => _searcher.ChunkCount;

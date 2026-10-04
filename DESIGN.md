@@ -87,6 +87,11 @@ All text pairs pass AA (4.5:1) and AAA for body text except `--ink-3`, which pas
 - **Passage excerpt**: PDF line breaks become spaces one for one, so highlight offsets stay valid. The excerpt starts at the beginning of the passage (which usually states the question) unless a later window holds at least two more highlights, is snapped to word boundaries, and shows "…" where text is cut. Reference implementation: `docs/ui/mock-common.js`.
 - **Highlight**: `<mark>` built from the API's `{start, length}` offsets as text segments (never innerHTML), merged when they overlap. Marker yellow background, text colour unchanged, 2 px radius.
 - **Notice**: a full-width band under the header, always the first content after the wordmark: "**Não é aconselhamento fiscal.** Leia sempre a informação vinculativa oficial." plus, on desktop, "Projeto independente, sem ligação à Autoridade Tributária e Aduaneira." It is visible without scrolling at both widths and never dismissible.
+- **Answer** (v0.2 part 2, within direction A): a block between the filter summary and the summary line, so the order is notice, question, answer, summary line, results. It never replaces or delays the results: they are shown as soon as the search returns, and the answer of that same search is requested only then (never for the empty, error or validation states). A white card with a 1 px `--rule` border and a 3 px `--accent` left rule, padding 16 by 24 (12 by 16 at 390), 24 px below it (16 at 390). Content:
+  - Heading (h2, sans 15/1.4, 600) "Resposta gerada a partir das passagens citadas", then the note (14, `--ink-3`) "Cada frase indica o processo de onde vem. Confirme sempre na informação vinculativa oficial."
+  - The answer in sans 17/1.6 (16 at 390), at most 68ch, so it reads as written text and not as a quoted passage (passages stay serif). Each sentence ends with its markers in parentheses, 14 px: "(Processo 15223; Processo 9876)", each a link in `--accent`, 600, never wrapped inside. A marker links to the cited result in the list (`#result-N`) and moves focus to that item, whose citation column carries **Abrir PDF oficial**; a cited ruling that is not in the list links straight to its official PDF in a new tab. Hidden text completes the name: "Processo 15223, resultado 2 da lista" or "Processo 15223, abrir PDF oficial (abre num novo separador)".
+  - Only sentences that pass the client-side checks are shown: every marker must name a citation of the response with an https link; a sentence left without a valid marker is not shown, and when none is left the block shows the refusal.
+  - States: loading "A preparar a resposta…" with two skeleton bars and `aria-busy="true"` on the answer block only (the bars are static under `prefers-reduced-motion: reduce`); answered; refused, the fixed text "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes."; unavailable (503, model absent, loading or busy), instead of the card one quiet line (14, `--ink-3`) "A resposta escrita não está disponível neste momento. Os excertos abaixo não são afetados."; error, "**Não foi possível preparar a resposta.** Os resultados abaixo mantêm-se." (bold part in `--danger`) and **Tentar de novo**, which requests only the answer again. A new search, a filter change or going back to the start removes the block and abandons its request; a late answer of an earlier search is never shown.
 - **Summary line**: "8 informações vinculativas, por proximidade" and the time in ms (desktop only).
 - **States** (they replace the results region in one transition; the query and filters stay as submitted):
   - Initial: heading "Escreva a sua pergunta como a faria a um contabilista", one explanatory sentence and three example questions as links.
@@ -94,18 +99,19 @@ All text pairs pass AA (4.5:1) and AAA for body text except `--ink-3`, which pas
   - Empty: "Nenhuma informação vinculativa encontrada", a suggestion to remove a filter or reword, and **Limpar filtros**.
   - Error: heading in `--danger` "Não foi possível pesquisar", "O serviço de pesquisa não respondeu. A sua pergunta e os filtros mantêm-se." and **Tentar de novo**.
   - Validation (blank query): the same inline pattern under the input, "Escreva uma pergunta para pesquisar.", with `aria-describedby` on the input.
-- **Live region**: one visually hidden `aria-live="polite"` element announces once per completed search: "8 informações vinculativas encontradas.", "Nenhuma informação vinculativa encontrada." or "Não foi possível pesquisar." The error block itself is not `role="alert"`, so it is announced once.
+- **Live region**: one visually hidden `aria-live="polite"` element announces once per completed search: "8 informações vinculativas encontradas.", "Nenhuma informação vinculativa encontrada." or "Não foi possível pesquisar." The error block itself is not `role="alert"`, so it is announced once. The answer has its own polite region, so the results announcement is neither repeated nor replaced; it announces once when the answer ends: "Resposta preparada a partir das passagens citadas.", "Sem resposta suportada pelas passagens encontradas.", "A resposta não está disponível neste momento." or "Não foi possível preparar a resposta."
 
 ## Focus and keyboard
 
 - `:focus-visible` outline 3 px `--focus`, offset 2 px, on every link, button, input and select. Never removed.
-- Focus stays on the control the user used (input after Enter, the select after a filter change, **Tentar de novo** after retry).
+- Focus stays on the control the user used (input after Enter, the select after a filter change, **Tentar de novo** after retry). The answer never takes focus when it arrives.
+- A citation marker of the answer moves focus to the cited result item (`tabindex="-1"`, 3 px focus outline offset 4 px), which scrolls it into view; the next Tab reaches its **Abrir PDF oficial**. After a successful answer retry focus goes to the answer heading.
 - The mobile filter sheet is a modal dialog: focus moves to its first select on open, Escape closes it, and focus returns to the **Filtros** button.
 - Touch targets at least 44 px tall at 390 px (search input 52, buttons 44 to 48, selects 44 in the sheet; 40 on desktop).
 
 ## Motion
 
-Motion is never needed to understand a state. With `prefers-reduced-motion: no-preference`, skeleton bars pulse (opacity, 1.6 s) and the sheet may slide up in about 150 ms. With `reduce`, the skeleton is static and the sheet appears in place; the static equivalent of loading is the "A pesquisar…" summary line.
+Motion is never needed to understand a state. With `prefers-reduced-motion: no-preference`, skeleton bars (results and answer) pulse (opacity, 1.6 s) and the sheet may slide up in about 150 ms. With `reduce`, the skeleton is static and the sheet appears in place; the static equivalent of loading is the "A pesquisar…" summary line.
 
 ## Copy rules
 
@@ -116,3 +122,5 @@ European Portuguese, no em-dashes, nothing about how the product was built. Neve
 - At 390 px a long question is clipped inside the single-line input; the full text stays editable and the results show their own context.
 - The article select of a tax has up to about 160 options (IVA). Acceptable with native selects; a searchable list would be a later change.
 - Subjects come from the rulings and can contain en-dashes; they are quoted as published.
+- The answer takes tens of seconds on a CPU; the loading line is the only progress shown, and only complete, checked sentences appear.
+- At 390 px an answer of four sentences pushes the first result below the first screen; the summary line still follows directly.

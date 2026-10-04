@@ -5,7 +5,7 @@ Two frozen question sets in plain European Portuguese, each question with the ru
 - `questions.json`: 50 questions about CIRS rulings. Results: [docs/eval/report.md](../docs/eval/report.md).
 - `questions-taxes.json`: 24 questions about seven other taxes (IVA, IRC, IMT, Imposto do Selo, IMI, EBF, IUC), described [below](#other-taxes-questions-taxesjson). Results: [docs/eval/taxes/report.md](../docs/eval/taxes/report.md).
 
-The `eval` command measures how often search puts one of the expected rulings in the first 10 results; `bench` measures how long hybrid search takes.
+The `eval` command measures how often search puts one of the expected rulings in the first 10 results; `bench` measures how long hybrid search takes; `answer-eval` reads a sample of both sets to compare answer models ([below](#answer-eval)).
 
 ```
 dotnet run --project src/LupaFiscal.Cli -- eval --questions eval/questions.json --out docs/eval/report.md --min-recall 0.85
@@ -113,6 +113,19 @@ On the multi-tax set the baseline reached hybrid recall@10 0.833 (MRR@10 0.645),
 | CIUC (IUC) | 21 | 1 | t24 | Disability exemption with the car in the spouse's name |
 
 The set was frozen on 2026-10-03, before any measurement: `eval --freeze` recorded its hash (`29cdcc1b6214968d...`, computed as for the CIRS set) in `docs/eval/taxes/history.json`, and the first measurement came after. A test checks the committed file against that hash, the number of questions (at least 20) and taxes (at least 4, none CIRS), and the tax prefix of every expected id. Target: hybrid recall@10 >= 0.70.
+
+## Answer eval
+
+`answer-eval` reuses both sets, read only, to compare answer models (v0.2 part 2). It does not change their hashes or their reports.
+
+```
+dotnet run --project src/LupaFiscal.Cli -- answer-eval --questions eval/questions.json,eval/questions-taxes.json --sample 12 --model qwen3-4b
+```
+
+- The sample is deterministic and spread evenly: the count is shared between the files and each file gives questions at even steps from its first one. With 12 questions: q01, q09, q17, q26, q34, q42, t01, t05, t09, t13, t17, t21.
+- Each question is answered from the top passages of an unfiltered hybrid search. Measured per model: the share of the model's sentences with only valid citations (before the code removes the others), the share of answers citing a ruling of `expected` among the questions where one was in the prompt, the refusal rate, time to first token, total time and peak memory.
+- Usefulness and European Portuguese are scored by reading the transcripts, not by the command.
+- It prints and writes nothing unless `--record`, which writes `docs/research/answer-eval.json`. Method, rubric, results and the model choice: [docs/research/answer-model.md](../docs/research/answer-model.md).
 
 ## Limitations
 

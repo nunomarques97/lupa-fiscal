@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using LupaFiscal.Core.Answering;
 using LupaFiscal.Core.Corpus;
 using LupaFiscal.Core.Crawling;
 using LupaFiscal.Core.Embeddings;
@@ -30,6 +31,7 @@ internal static class CliApp
                                      Print corpus counts per tax; exits 0 only when no listed ruling is pending.
               --list-failed          Also list failed rulings with their reason.
           model download             Download the pinned embedding model into data/models (SHA-256 verified).
+              --model NAME           Download a pinned answer model instead (see answer --model).
           index [--tax T]            Chunk and embed the extracted rulings of every crawled tax into
                                      data/lupa-fiscal.db (idempotent, resumable; downloads the model first if
                                      needed). A PDF already listed by an earlier tax is stored once.
@@ -54,6 +56,20 @@ internal static class CliApp
               --max-ms N             Exit 1 when the slowest query takes N ms or more (default 1000).
               --record               Also record the timings in the report and its history.
               --out FILE             Report path (default docs/eval/report.md in the repository).
+          answer "question"          Answer from the passages hybrid search retrieves, with a local model; every
+                                     shown sentence cites a passage, otherwise a fixed refusal is printed.
+              --tax T --year Y       Filters, as for search.
+              --article A            Article within the --tax code (requires --tax).
+              --model NAME           Answer model: qwen3-4b (default), phi-4-mini or eurollm-9b
+                                     (download it first with: model download --model NAME).
+          answer-eval --questions FILE[,FILE]
+                                     Answers a spread sample of eval questions with each model and prints the
+                                     share of model sentences with valid citations, the share of answers citing an
+                                     expected ruling, the refusal rate and the timings; writes nothing unless --record.
+              --sample N             Questions, shared between the files (default 12).
+              --model NAME[,NAME]    Models to compare (default qwen3-4b).
+              --record               Write the numbers and transcripts to --out
+                                     (default docs/research/answer-eval.json).
 
         Common options:
           --data-dir PATH            Data directory (default: <repository>/data, or LUPAFISCAL_DATA_DIR).
@@ -61,7 +77,8 @@ internal static class CliApp
 
     public static async Task<int> RunAsync(string[] args, TextWriter stdout, TextWriter stderr,
         CancellationToken cancellationToken, Func<HttpMessageHandler>? handlerFactory = null,
-        Func<IEmbedder>? embedderFactory = null, ICrawlClock? crawlClock = null)
+        Func<IEmbedder>? embedderFactory = null, ICrawlClock? crawlClock = null,
+        Func<AnswerModel, IAnswerGenerator>? generatorFactory = null)
     {
         if (args.Length == 0 || args[0] is "help" or "--help" or "-h")
         {
@@ -69,12 +86,12 @@ internal static class CliApp
             return args.Length == 0 ? ExitUsage : ExitOk;
         }
 
-        // "model download" and "search <question>" take positional words before their options.
+        // "model download", "search <question>" and "answer <question>" take positional words before their options.
         var positional = args.Skip(1).TakeWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
         Arguments parsed;
         try
         {
-            if (positional.Count > 0 && args[0] is not ("model" or "search"))
+            if (positional.Count > 0 && args[0] is not ("model" or "search" or "answer"))
             {
                 throw new ArgumentException($"Unexpected argument '{positional[0]}'.");
             }
@@ -99,6 +116,8 @@ internal static class CliApp
                 "search" => IndexCommands.Search(positional, parsed, stdout, embedderFactory),
                 "eval" => EvalCommands.Eval(parsed, stdout, stderr, embedderFactory, cancellationToken),
                 "bench" => EvalCommands.Bench(parsed, stdout, stderr, embedderFactory, cancellationToken),
+                "answer" => AnswerCommands.Answer(positional, parsed, stdout, embedderFactory, generatorFactory, cancellationToken),
+                "answer-eval" => AnswerCommands.AnswerEval(parsed, stdout, stderr, embedderFactory, generatorFactory, cancellationToken),
                 _ => UnknownCommand(args[0], stderr),
             };
         }
@@ -129,10 +148,10 @@ internal static class CliApp
     {
         if (positional is not ["download"])
         {
-            throw new ArgumentException("Usage: model download [--data-dir PATH]");
+            throw new ArgumentException("Usage: model download [--model NAME] [--data-dir PATH]");
         }
-        args.EnsureOnly("data-dir");
-        var store = ModelStoreFor(args);
+        args.EnsureOnly("model", "data-dir");
+        var store = args.Has("model") ? AnswerModelStoreFor(args, RequireAnswerModel(args.Get("model"))) : ModelStoreFor(args);
         var log = new TimestampedWriter(stdout);
         await DownloadModelAsync(store, log, handlerFactory, cancellationToken);
         return ExitOk;
@@ -149,6 +168,13 @@ internal static class CliApp
 
     internal static ModelStore ModelStoreFor(Arguments args) =>
         new(Path.Combine(DataDirectory.Resolve(args.Get("data-dir")), "models"), ModelSpec.MultilingualE5Small);
+
+    internal static ModelStore AnswerModelStoreFor(Arguments args, AnswerModel model) =>
+        new(Path.Combine(DataDirectory.Resolve(args.Get("data-dir")), "models"), model.Spec);
+
+    internal static AnswerModel RequireAnswerModel(string? name) =>
+        AnswerModel.Find(name ?? string.Empty)
+        ?? throw new ArgumentException($"Unknown answer model '{name}' (available: {AnswerModel.Names}).");
 
     private static int UnknownCommand(string command, TextWriter stderr)
     {

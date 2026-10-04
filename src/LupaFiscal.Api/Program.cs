@@ -1,4 +1,5 @@
 using LupaFiscal.Core;
+using LupaFiscal.Core.Answering;
 using LupaFiscal.Core.Embeddings;
 using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.FileProviders;
@@ -6,8 +7,8 @@ using Microsoft.Extensions.FileProviders;
 namespace LupaFiscal.Api;
 
 /// <summary>
-/// The local search API on http://localhost:4401: GET /api/search, /api/facets and /api/health,
-/// plus the built Angular app (web/dist) with an SPA fallback when it exists. Options:
+/// The local search API on http://localhost:4401: GET /api/search, /api/answer, /api/facets and
+/// /api/health, plus the built Angular app (web/dist) with an SPA fallback when it exists. Options:
 /// --data-dir (else LUPAFISCAL_DATA_DIR, else data/ at the repository root) and --web-root.
 /// </summary>
 public sealed class Program
@@ -41,6 +42,13 @@ public sealed class Program
             E5Embedder.Load(new ModelStore(Path.Combine(DataDir(services), "models"), ModelSpec.MultilingualE5Small)));
         builder.Services.AddSingleton(services =>
             SearchIndex.Open(Path.Combine(DataDir(services), IndexFileName), services.GetRequiredService<IEmbedder>()));
+        // The answer model is optional: it loads in the background after startup, and without it only /api/answer is unavailable.
+        builder.Services.AddSingleton(services => new AnswerModelLoader(Path.Combine(DataDir(services), "models"), AnswerModel.Default,
+            services.GetRequiredService<ILogger<AnswerModelLoader>>()));
+        builder.Services.AddSingleton<IAnswerGeneratorProvider>(services => services.GetRequiredService<AnswerModelLoader>());
+        builder.Services.AddHostedService(services => services.GetRequiredService<AnswerModelLoader>());
+        builder.Services.AddSingleton(new AnswerServiceOptions());
+        builder.Services.AddSingleton<AnswerService>();
 
         var app = builder.Build();
 
@@ -70,6 +78,29 @@ public sealed class Program
         {
             var query = SearchQuery.Parse(request.Query, out var errors);
             return query is null ? Results.ValidationProblem(errors) : Results.Ok(index.Search(query));
+        });
+        // Same parameters and validation as /api/search (limit is validated too, though the prompt bounds the passages).
+        api.MapGet("/answer", async (HttpContext context, AnswerService answers) =>
+        {
+            var query = SearchQuery.Parse(context.Request.Query, out var errors);
+            if (query is null) return Results.ValidationProblem(errors);
+            AnswerOutcome outcome;
+            try
+            {
+                outcome = await answers.AnswerAsync(query, context.RequestAborted);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                // The client went away; its generation has stopped and nobody reads this response.
+                return Results.Empty;
+            }
+            return outcome.Kind switch
+            {
+                AnswerOutcomeKind.Answered => Results.Ok(outcome.Response),
+                AnswerOutcomeKind.Busy => Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
+                    title: "The answer model is busy with another question. Try again shortly."),
+                _ => Results.Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "The answer model is not available."),
+            };
         });
         api.MapGet("/facets", (SearchIndex index) => index.Facets);
         api.MapGet("/health", (SearchIndex index) => new HealthResponse("ok", index.Rulings, index.Chunks));

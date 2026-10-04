@@ -1,7 +1,7 @@
 import { Component, computed, input, signal } from '@angular/core';
 
 import { SearchResult } from './api';
-import { articleCitation, dateShort, sectionLabel, taxLabel } from './format';
+import { articleCitation, dateShort, resultAnchor, sectionLabel, taxLabel } from './format';
 import { passageView } from './passage';
 
 let nextId = 0;
@@ -12,7 +12,15 @@ let nextId = 0;
  */
 @Component({
   selector: 'li[app-result-item]',
-  host: { class: 'result', 'data-result': '', '[attr.data-ruling-id]': 'result().rulingId', '[attr.data-tax]': 'result().tax' },
+  // The id and tabindex let a citation marker of the answer move focus to this item.
+  host: {
+    class: 'result',
+    tabindex: '-1',
+    '[id]': 'anchor()',
+    'data-result': '',
+    '[attr.data-ruling-id]': 'result().rulingId',
+    '[attr.data-tax]': 'result().tax',
+  },
   template: `
     <div class="cite">
       <span class="rank" aria-hidden="true">{{ rank() }}</span>
@@ -51,6 +59,7 @@ export class ResultItem {
   readonly excerptChars = input(360);
 
   protected readonly passageId = `passage-${++nextId}`;
+  protected readonly anchor = computed(() => resultAnchor(this.rank()));
   protected readonly expanded = signal(false);
 
   private readonly excerpt = computed(() => passageView(this.result().passage, this.result().highlights ?? [], this.excerptChars()));

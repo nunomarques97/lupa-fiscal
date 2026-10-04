@@ -1,15 +1,19 @@
+using LupaFiscal.Api;
+using LupaFiscal.Core.Answering;
 using LupaFiscal.Core.Embeddings;
 using LupaFiscal.Core.Indexing;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace LupaFiscal.Tests.Support;
 
 /// <summary>
 /// The API in memory (TestServer) over a fixture index built with the fake embedder in a temporary
 /// data directory, from three tax corpora (CIRS, CIRC and the CIVA fixture with its copy of a CIRS
-/// PDF). No model, no network and no port are used.
+/// PDF). No model, no network and no port are used: the answer model is absent unless a generator is given.
 /// </summary>
 internal sealed class ApiTestHost : IDisposable
 {
@@ -46,7 +50,11 @@ internal sealed class ApiTestHost : IDisposable
     /// <param name="prepareIndex">Runs on the built index file before the API opens it.</param>
     /// <param name="embedder">Replaces the model; the fake embedder by default.</param>
     /// <param name="webRoot">The --web-root setting; by default a directory without an app.</param>
-    public ApiTestHost(Action<string>? prepareIndex = null, IEmbedder? embedder = null, string? webRoot = null)
+    /// <param name="generator">Serves as the loaded answer model; by default none is loaded (data/models is empty).</param>
+    /// <param name="answerOptions">Replaces the answer bounds (queue wait, tokens, time limit).</param>
+    /// <param name="logs">Receives every log entry of the API.</param>
+    public ApiTestHost(Action<string>? prepareIndex = null, IEmbedder? embedder = null, string? webRoot = null,
+        IAnswerGenerator? generator = null, AnswerServiceOptions? answerOptions = null, ILoggerProvider? logs = null)
     {
         var stores = TestCorpus.WriteTaxes(_temp.Path, Corpus);
         using (var database = IndexDatabase.OpenForWrite(IndexPath))
@@ -60,7 +68,13 @@ internal sealed class ApiTestHost : IDisposable
         {
             builder.UseSetting("data-dir", _temp.Path);
             builder.UseSetting("web-root", webRoot ?? noApp);
-            builder.ConfigureTestServices(services => services.AddSingleton(embedder ?? new FakeEmbedder()));
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddSingleton(embedder ?? new FakeEmbedder());
+                if (generator is not null) services.AddSingleton<IAnswerGeneratorProvider>(new LoadedGenerator(generator));
+                if (answerOptions is not null) services.AddSingleton(answerOptions);
+            });
+            if (logs is not null) builder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(logs));
         });
         Client = _factory.CreateClient();
     }
@@ -69,10 +83,17 @@ internal sealed class ApiTestHost : IDisposable
 
     public HttpClient Client { get; }
 
+    public IServiceProvider Services => _factory.Services;
+
     public void Dispose()
     {
         Client.Dispose();
         _factory.Dispose();
         _temp.Dispose();
+    }
+
+    private sealed class LoadedGenerator(IAnswerGenerator generator) : IAnswerGeneratorProvider
+    {
+        public IAnswerGenerator? Generator => generator;
     }
 }

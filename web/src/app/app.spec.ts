@@ -3,7 +3,14 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 
-import { FacetsResponse, SearchResponse, SearchResult } from './api';
+import {
+  ANSWERED_ANNOUNCEMENT,
+  ANSWER_ERROR_ANNOUNCEMENT,
+  REFUSAL_TEXT,
+  REFUSED_ANNOUNCEMENT,
+  UNAVAILABLE_ANNOUNCEMENT,
+} from './answer-store';
+import { AnswerCitation, AnswerResponse, FacetsResponse, SearchResponse, SearchResult } from './api';
 import { App, VALIDATION_MESSAGE } from './app';
 import { routes } from './app.routes';
 
@@ -51,6 +58,26 @@ function result(
 
 const response = (...results: SearchResult[]): SearchResponse => ({ query: 'q', tookMs: 12.4, results });
 
+/** The answer cites results by their ruling: citation id n is the ruling piv_n. */
+function citation(id: number, sourceUrl = `https://info.portaldasfinancas.gov.pt/piv_${id}.pdf`): AnswerCitation {
+  return { ...result(`piv_${id}`), id, sourceUrl };
+}
+
+function answer(
+  sentences: [string, number[]][],
+  citations = [...new Set(sentences.flatMap(([, ids]) => ids))].map(id => citation(id)),
+): AnswerResponse {
+  return {
+    query: 'q',
+    status: 'answered',
+    sentences: sentences.map(([text, ids]) => ({ text, citations: ids })),
+    citations,
+    model: 'qwen3-4b',
+    firstTokenMs: 900,
+    tookMs: 4000,
+  };
+}
+
 describe('App', () => {
   let fixture: ComponentFixture<App>;
   let http: HttpTestingController;
@@ -62,6 +89,14 @@ describe('App', () => {
     await fixture.whenStable();
   };
   const searches = () => http.match(r => r.url === '/api/search');
+  const answers = () => http.match(r => r.url === '/api/answer');
+  const lastAnswer = (): TestRequest => {
+    const pending = answers();
+    expect(pending.length).toBeGreaterThan(0);
+    return pending[pending.length - 1];
+  };
+  const answerLive = () => el.querySelector('[data-answer-live]')!.textContent!.trim();
+  const answerBlock = () => el.querySelector<HTMLElement>('[data-answer]');
   const lastSearch = (): TestRequest => {
     const pending = searches();
     expect(pending.length).toBeGreaterThan(0);
@@ -111,6 +146,8 @@ describe('App', () => {
   }
 
   afterEach(() => {
+    // The answer requested after results is not part of every test; a pending one is dropped here.
+    answers();
     http.verify({ ignoreCancelled: true });
     el?.remove();
   });
@@ -508,5 +545,206 @@ describe('App', () => {
     await settle();
     expect(input().value).toBe('');
     expect(el.textContent).toContain('Escreva a sua pergunta como a faria a um contabilista');
+  });
+
+  describe('answer', () => {
+    async function resultsFor(url: string, ...results: SearchResult[]) {
+      await start(url);
+      lastSearch().flush(response(...results));
+      await settle();
+    }
+
+    it('shows the results first, then requests the answer of the same search and shows it above them', async () => {
+      await start('/?q=educa%C3%A7%C3%A3o&tax=CIRS&year=2020');
+      const search = lastSearch();
+      expect(answers()).toHaveLength(0);
+      search.flush(response(result('piv_1'), result('piv_2')));
+      await settle();
+      expect(rulingIds()).toEqual(['piv_1', 'piv_2']);
+
+      const request = lastAnswer();
+      expect(request.request.params.get('q')).toBe('educação');
+      expect(request.request.params.get('tax')).toBe('CIRS');
+      expect(request.request.params.get('year')).toBe('2020');
+      expect(answerBlock()!.getAttribute('aria-busy')).toBe('true');
+      expect(answerBlock()!.textContent).toContain('A preparar a resposta…');
+      expect(el.querySelector('[data-region]')!.hasAttribute('aria-busy')).toBe(false);
+      // The notice comes first, then the answer block, then the summary line and the results.
+      const follows = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(follows(el.querySelector('[data-notice]')!, answerBlock()!)).toBe(true);
+      expect(follows(answerBlock()!, el.querySelector('[data-summary]')!)).toBe(true);
+
+      request.flush(answer([['Pode deduzir as despesas.', [1, 2]], ['O limite aplica-se.', [2]]]));
+      await settle();
+      expect(answerBlock()!.hasAttribute('aria-busy')).toBe(false);
+      expect(answerBlock()!.getAttribute('data-state')).toBe('answered');
+      expect(answerBlock()!.textContent).toContain('Resposta gerada a partir das passagens citadas');
+      expect(answerBlock()!.textContent).toContain('Confirme sempre na informação vinculativa oficial.');
+      expect([...el.querySelectorAll('[data-answer-sentence]')].map(s => s.textContent)).toEqual(['Pode deduzir as despesas.', 'O limite aplica-se.']);
+      const marks = [...el.querySelectorAll<HTMLAnchorElement>('.answer-mark')];
+      expect(marks.map(m => m.getAttribute('href'))).toEqual(['#result-1', '#result-2', '#result-2']);
+      expect(marks[0].textContent).toBe('Processo 1, resultado 1 da lista');
+      expect(marks.every(m => !m.hasAttribute('target'))).toBe(true);
+      expect(answerBlock()!.querySelector('.answer-text')!.textContent!.replace(/\s+/g, ' ').trim()).toBe(
+        'Pode deduzir as despesas. (Processo 1, resultado 1 da lista; Processo 2, resultado 2 da lista) O limite aplica-se. (Processo 2, resultado 2 da lista)',
+      );
+      expect(answerLive()).toBe(ANSWERED_ANNOUNCEMENT);
+      expect(live()).toBe('2 informações vinculativas encontradas.');
+      expect(el.textContent).not.toContain(String.fromCharCode(0x2014));
+    });
+
+    it('moves focus to the cited result when a citation marker is activated', async () => {
+      await resultsFor('/?q=x', result('piv_1'), result('piv_2'));
+      lastAnswer().flush(answer([['Pode deduzir as despesas.', [2]]]));
+      await settle();
+      const mark = el.querySelector<HTMLAnchorElement>('.answer-mark')!;
+      mark.focus();
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      mark.dispatchEvent(click);
+      await settle();
+      expect(click.defaultPrevented).toBe(true);
+      const target = el.querySelector('#result-2')!;
+      expect(target.getAttribute('data-ruling-id')).toBe('piv_2');
+      expect(document.activeElement).toBe(target);
+      expect(router.url).not.toContain('#');
+    });
+
+    it('links a cited ruling that is not in the list to its official PDF instead', async () => {
+      await resultsFor('/?q=x', result('piv_1'));
+      lastAnswer().flush(answer([['Frase com fonte.', [7]]]));
+      await settle();
+      const mark = el.querySelector<HTMLAnchorElement>('.answer-mark')!;
+      expect(mark.getAttribute('href')).toBe('https://info.portaldasfinancas.gov.pt/piv_7.pdf');
+      expect(mark.target).toBe('_blank');
+      expect(mark.rel).toBe('noopener noreferrer');
+      expect(mark.textContent).toBe('Processo 7, abrir PDF oficial (abre num novo separador)');
+    });
+
+    it('renders answer text as text and hides sentences that fail the client-side checks', async () => {
+      await resultsFor('/?q=x', result('piv_1'), result('piv_2'));
+      lastAnswer().flush(
+        answer(
+          [
+            ['Antes <img src=x onerror="window.hacked=1"> depois.', [1]],
+            ['Cita um id desconhecido.', [9]],
+            ['Cita uma ligação http.', [2]],
+          ],
+          [citation(1), citation(2, 'http://info.portaldasfinancas.gov.pt/piv_2.pdf')],
+        ),
+      );
+      await settle();
+      expect(answerBlock()!.querySelector('img')).toBeNull();
+      expect([...el.querySelectorAll('[data-answer-sentence]')].map(s => s.textContent)).toEqual(['Antes <img src=x onerror="window.hacked=1"> depois.']);
+      expect([...el.querySelectorAll('.answer-mark')].map(m => m.getAttribute('href'))).toEqual(['#result-1']);
+    });
+
+    it('shows the fixed refusal when the answer is refused or nothing valid is left', async () => {
+      await resultsFor('/?q=x', result('piv_1'));
+      lastAnswer().flush({ ...answer([]), status: 'refused', sentences: [{ text: 'Outro texto qualquer', citations: [] }] });
+      await settle();
+      expect(answerBlock()!.getAttribute('data-state')).toBe('refused');
+      expect(answerBlock()!.querySelector('.answer-refused')!.textContent).toBe(REFUSAL_TEXT);
+      expect(answerBlock()!.textContent).not.toContain('Outro texto qualquer');
+      expect(el.querySelectorAll('.answer-mark')).toHaveLength(0);
+      expect(answerLive()).toBe(REFUSED_ANNOUNCEMENT);
+
+      await type('y');
+      await submit();
+      lastSearch().flush(response(result('piv_1')));
+      await settle();
+      lastAnswer().flush(answer([['Só com id desconhecido.', [9]]], [citation(1)]));
+      await settle();
+      expect(answerBlock()!.getAttribute('data-state')).toBe('refused');
+    });
+
+    it('shows a quiet note when the answer is unavailable, leaving the results untouched', async () => {
+      await resultsFor('/?q=x', result('piv_1'), result('piv_2'));
+      const region = el.querySelector('[data-region]')!.innerHTML;
+      lastAnswer().flush({ title: 'The answer model is not available.' }, { status: 503, statusText: 'Service Unavailable' });
+      await settle();
+      expect(answerBlock()!.getAttribute('data-state')).toBe('unavailable');
+      expect(answerBlock()!.textContent).toContain('A resposta escrita não está disponível neste momento.');
+      expect(el.querySelector('[data-answer-error]')).toBeNull();
+      expect(el.querySelector('[data-region]')!.innerHTML).toBe(region);
+      expect(answerLive()).toBe(UNAVAILABLE_ANNOUNCEMENT);
+      expect(live()).toBe('2 informações vinculativas encontradas.');
+    });
+
+    it('shows an answer-only error, keeps focus while retrying and recovers', async () => {
+      await resultsFor('/?q=x', result('piv_1'), result('piv_2'));
+      const region = el.querySelector('[data-region]')!.innerHTML;
+      lastAnswer().flush({ title: 'error' }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(answerBlock()!.getAttribute('data-state')).toBe('error');
+      expect(el.querySelector('[data-answer-error]')!.textContent).toContain('Não foi possível preparar a resposta.');
+      expect(el.querySelector('[data-region]')!.innerHTML).toBe(region);
+      expect(el.querySelector('[data-error]')).toBeNull();
+      expect(answerLive()).toBe(ANSWER_ERROR_ANNOUNCEMENT);
+      expect(live()).toBe('2 informações vinculativas encontradas.');
+
+      const retry = el.querySelector<HTMLButtonElement>('[data-answer-error] button')!;
+      retry.focus();
+      retry.click();
+      await settle();
+      expect(searches()).toHaveLength(0);
+      const request = lastAnswer();
+      expect(request.request.params.get('q')).toBe('x');
+      expect(el.querySelector('[data-answer-error] button')).toBe(retry);
+      expect(retry.getAttribute('aria-disabled')).toBe('true');
+      expect(answerBlock()!.getAttribute('aria-busy')).toBe('true');
+      expect(document.activeElement).toBe(retry);
+      expect(answerLive()).toBe('');
+
+      request.flush(answer([['Pode deduzir as despesas.', [1]]]));
+      await settle();
+      expect(answerBlock()!.getAttribute('data-state')).toBe('answered');
+      expect(document.activeElement).toBe(el.querySelector('#answer-title'));
+      expect(answerLive()).toBe(ANSWERED_ANNOUNCEMENT);
+      expect(el.querySelector('[data-region]')!.innerHTML).toBe(region);
+    });
+
+    it('requests no answer for an empty result, a failed search or a blank question', async () => {
+      await start('/?q=x&tax=CIRS&article=78-D');
+      lastSearch().flush(response());
+      await settle();
+      expect(answers()).toHaveLength(0);
+      expect(answerBlock()).toBeNull();
+
+      await type('y');
+      await submit();
+      lastSearch().flush({ title: 'error' }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(answers()).toHaveLength(0);
+
+      await type('  ');
+      await submit();
+      expect(answers()).toHaveLength(0);
+      expect(answerBlock()).toBeNull();
+    });
+
+    it('aborts the pending answer on a new search, a filter change and a reset, and drops it from view', async () => {
+      await resultsFor('/?q=x', result('piv_1'));
+      let pending = lastAnswer();
+      await type('y');
+      await submit();
+      expect(pending.cancelled).toBe(true);
+      expect(answerBlock()).toBeNull();
+      lastSearch().flush(response(result('piv_2')));
+      await settle();
+
+      pending = lastAnswer();
+      await chooseFilter('#d-tax', 'CIVA');
+      expect(pending.cancelled).toBe(true);
+      expect(answerBlock()).toBeNull();
+      lastSearch().flush(response(result('piv_3')));
+      await settle();
+
+      pending = lastAnswer();
+      await router.navigateByUrl('/');
+      await settle();
+      expect(pending.cancelled).toBe(true);
+      expect(answerBlock()).toBeNull();
+      expect(answerLive()).toBe('');
+    });
   });
 });

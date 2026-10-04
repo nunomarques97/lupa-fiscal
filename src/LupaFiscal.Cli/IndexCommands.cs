@@ -119,11 +119,7 @@ internal static class IndexCommands
             "vector" => SearchMode.Vector,
             var other => throw new ArgumentException($"Unknown --mode '{other}' (hybrid, keyword or vector)."),
         };
-        var filters = new SearchFilters(Blank(args.Get("tax")), Blank(args.Get("article")), args.GetInt("year"));
-        if (filters.Article is not null && filters.Tax is null)
-        {
-            throw new ArgumentException("--article needs --tax: article numbers are only meaningful within one tax code.");
-        }
+        var filters = Filters(args);
 
         var load = Stopwatch.StartNew();
         using var embedder = embedderFactory?.Invoke() ?? E5Embedder.Load(CliApp.ModelStoreFor(args));
@@ -149,6 +145,17 @@ internal static class IndexCommands
         if (result.Hits.Count == 0) stdout.WriteLine("No results.");
         stdout.WriteLine($"Search took {result.ElapsedMs:0} ms ({result.Hits.Count} result(s)).");
         return CliApp.ExitOk;
+    }
+
+    /// <summary>The --tax, --article and --year filters, shared by search and answer.</summary>
+    internal static SearchFilters Filters(Arguments args)
+    {
+        var filters = new SearchFilters(Blank(args.Get("tax")), Blank(args.Get("article")), args.GetInt("year"));
+        if (filters.Article is not null && filters.Tax is null)
+        {
+            throw new ArgumentException("--article needs --tax: article numbers are only meaningful within one tax code.");
+        }
+        return filters;
     }
 
     private static void WriteReport(TextWriter writer, IndexStatusReport report)
@@ -184,7 +191,7 @@ internal static class IndexCommands
 
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static string IndexPath(Arguments args) => Path.Combine(DataDirectory.Resolve(args.Get("data-dir")), IndexFileName);
+    internal static string IndexPath(Arguments args) => Path.Combine(DataDirectory.Resolve(args.Get("data-dir")), IndexFileName);
 
     /// <summary>
     /// Every supported tax that has a crawled corpus (in source order), and the ones the command is

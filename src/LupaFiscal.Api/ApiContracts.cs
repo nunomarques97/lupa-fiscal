@@ -33,3 +33,37 @@ public sealed record FacetsResponse(
     IReadOnlyList<YearFacetValue> Years);
 
 public sealed record HealthResponse(string Status, int Rulings, int Chunks);
+
+/// <summary>
+/// A strict-citation answer. Status is "answered" or "refused". Every id in a sentence is in
+/// <see cref="Citations"/>, and every citation is cited by a sentence. A refusal has one sentence, the
+/// fixed refusal text, with no citations, and no citations at all. Timings are in milliseconds.
+/// </summary>
+public sealed record AnswerResponse(
+    string Query,
+    string Status,
+    IReadOnlyList<AnswerSentenceItem> Sentences,
+    IReadOnlyList<AnswerCitationItem> Citations,
+    string Model,
+    double FirstTokenMs,
+    double TookMs)
+{
+    public const string Answered = "answered";
+    public const string Refused = "refused";
+}
+
+/// <summary>A plain-text sentence without its markers, and the citation ids it rests on (in order).</summary>
+public sealed record AnswerSentenceItem(string Text, IReadOnlyList<int> Citations);
+
+/// <summary>A cited passage: the ruling passage given to the model under this id, with its official PDF.</summary>
+public sealed record AnswerCitationItem(
+    int Id,
+    string RulingId,
+    string ProcessNumber,
+    string Tax,
+    string Article,
+    DateOnly? Date,
+    string Subject,
+    string Section,
+    string Passage,
+    string SourceUrl);

@@ -1,0 +1,2212 @@
+{
+  "models": [
+    {
+      "name": "eurollm-9b",
+      "model": "keisuke-miyako/EuroLLM-9B-Instruct-onnx-int4@453de15dd26e3e3cd5a211db2635bc39902a5ad4",
+      "licence": "Apache-2.0 (base model); the conversion repository states no licence of its own",
+      "sizeOnDiskBytes": 7511547418,
+      "recordedAt": "2026-10-03T11:58:54Z",
+      "machine": "16 logical processors, Microsoft Windows NT 10.0.26200.0",
+      "loadMs": 21325,
+      "peakWorkingSetBytes": 9077522432,
+      "settings": "4 passages, 180 tokens each at most, prompt budget 1150 tokens, 180 new tokens, time limit 90 s, greedy",
+      "metrics": {
+        "rawSentences": 39,
+        "validRawSentences": 12,
+        "rawValidShare": 0.308,
+        "questionsWithExpectedProvided": 9,
+        "questionsCitingExpected": 3,
+        "expectedCitedShare": 0.333,
+        "refusals": 6,
+        "refusalRate": 0.5,
+        "firstTokenP50Ms": 51784,
+        "firstTokenP95Ms": 89380,
+        "totalP50Ms": 70047,
+        "totalP95Ms": 94104
+      },
+      "transcripts": [
+        {
+          "id": "q01",
+          "set": "eval/questions.json",
+          "question": "Vendi o apartamento onde morava e quero usar o dinheiro para comprar uma casa nova para viver e outra para pôr a arrendar. Fico isento de mais-valias sobre o valor todo?",
+          "expected": [
+            "piv_31329",
+            "piv_30947",
+            "piv_30696"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "De acordo com a fonte, se reinvestir o lucro da venda na compra de uma nova moradia para habitação própria, pode estar isento de mais-valias, desde que cumpra os requisitos do artigo 10.º do Código do IRS. [1] No entanto, a fonte esclarece que a situação de não residente fiscal pode influenciar a tributação, e a fonte menciona que a partilha de imóveis após divórcio pode ter circunstâncias excecionais. [2][3]",
+          "rawOutput": "A venda do apartamento e a compra de uma nova casa para viver e outra para arrendar podem estar sujeitas a tributação em sede de mais-valias. De acordo com a fonte [1], se reinvestir o lucro da venda na compra de uma nova moradia para habitação própria, pode estar isento de mais-valias, desde que cumpra os requisitos do artigo 10.º do Código do IRS. No entanto, a fonte [2] esclarece que a situação de não residente fiscal pode influenciar a tributação, e a fonte [3] menciona que a partilha de imóveis após divórcio pode ter circunstâncias excecionais. Não encontrei a resposta nas fontes.",
+          "rawSentences": 4,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_26895",
+              "processNumber": "26895",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26895.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28882",
+              "processNumber": "28882",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28882.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1071,
+          "generatedTokens": 149,
+          "stop": "end of text",
+          "searchMs": 1740,
+          "firstTokenMs": 49772,
+          "totalMs": 80784
+        },
+        {
+          "id": "q09",
+          "set": "eval/questions.json",
+          "question": "Arrendei o meu apartamento a uma empresa que o usa para alojar um funcionário. Posso ter a taxa mais baixa dos contratos de arrendamento para habitação de longa duração?",
+          "expected": [
+            "piv_30751",
+            "piv_30248",
+            "piv_28573",
+            "piv_27608",
+            "piv_26047"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "No entanto, a fonte indica que a situação do requerente ainda está a ser analisada para determinar se a alteração contratual se mostrava válida para a redução da taxa. [4]",
+          "rawOutput": "O requerente pode beneficiar da redução da taxa de IRS prevista no n.º 3 do artigo 72.º do Código do IRS, se o contrato de arrendamento for celebrado com uma empresa e o imóvel for usado como habitação de longa duração. No entanto, a fonte [4] indica que a situação do requerente ainda está a ser analisada para determinar se a alteração contratual se mostrava válida para a redução da taxa.",
+          "rawSentences": 2,
+          "validRawSentences": 1,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_25838",
+              "processNumber": "25838",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25838.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26047",
+              "processNumber": "26047",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26047.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27569",
+              "processNumber": "27569",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27569.pdf",
+              "truncated": false
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_27608",
+              "processNumber": "27608",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27608.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1148,
+          "generatedTokens": 97,
+          "stop": "end of text",
+          "searchMs": 1747,
+          "firstTokenMs": 51784,
+          "totalMs": 71716
+        },
+        {
+          "id": "q17",
+          "set": "eval/questions.json",
+          "question": "Sou estrangeiro, estudei no meu país e vim trabalhar para Portugal. Também tenho direito ao IRS Jovem?",
+          "expected": [
+            "piv_28682",
+            "piv_28538"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "Segundo a fonte, o período de 10 anos para a contagem do período de 10 anos do regime do IRS jovem inicia-se no ano de 2020 ou no ano de 2015, dependendo do início da atividade profissional. [1] A fonte esclarece que, para usufruir do IRS Jovem, é necessário declarar o anexo B e declarar eventuais outros rendimentos da categoria B obtidos em Portugal. [2]",
+          "rawOutput": "O IRS Jovem é um regime tributário específico para jovens que trabalham em Portugal. Para beneficiar deste regime, é necessário cumprir certos requisitos.\n\nSegundo a fonte [1], o período de 10 anos para a contagem do período de 10 anos do regime do IRS jovem inicia-se no ano de 2020 ou no ano de 2015, dependendo do início da atividade profissional.\n\nA fonte [2] esclarece que, para usufruir do IRS Jovem, é necessário declarar o anexo B e declarar eventuais outros rendimentos da categoria B obtidos em Portugal.\n\nA fonte [3] refere que, para beneficiar do IRS",
+          "rawSentences": 4,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27746",
+              "processNumber": "27746",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27746.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26968",
+              "processNumber": "26968",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26968.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28538",
+              "processNumber": "28538",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28538.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_27751",
+              "processNumber": "27751",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27751.pdf",
+              "truncated": false
+            }
+          ],
+          "promptTokens": 1143,
+          "generatedTokens": 146,
+          "stop": "time limit",
+          "searchMs": 3795,
+          "firstTokenMs": 75690,
+          "totalMs": 94104
+        },
+        {
+          "id": "q26",
+          "set": "eval/questions.json",
+          "question": "Vendi uma casa e tive de pagar ao banco para liquidar o empréstimo e cancelar a hipoteca. Posso abater esses encargos ao ganho da venda?",
+          "expected": [
+            "piv_30373"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "Não encontrei a resposta nas fontes. As fontes fornecidas não abordam diretamente a situação de abater encargos da venda de uma casa para liquidar um empréstimo e cancelar uma hipoteca. As fontes fornecidas tratam de casos específicos de alienação onerosa de imóveis e aplicação de valores na amortização de créditos bancários, mas não abordam a questão dos encargos da venda.",
+          "rawSentences": 3,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_23518",
+              "processNumber": "23518",
+              "tax": "CIRS",
+              "article": "51",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23518.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_25748",
+              "processNumber": "25748",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25748.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_26804",
+              "processNumber": "26804",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26804.pdf",
+              "truncated": false
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_30373",
+              "processNumber": "30373",
+              "tax": "CIRS",
+              "article": "51",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_30373.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1147,
+          "generatedTokens": 83,
+          "stop": "end of text",
+          "searchMs": 601,
+          "firstTokenMs": 42769,
+          "totalMs": 53509
+        },
+        {
+          "id": "q34",
+          "set": "eval/questions.json",
+          "question": "O meu filho tem 30 anos e não consegue trabalhar por causa de uma doença. Posso continuar a pô-lo como dependente?",
+          "expected": [
+            "piv_27691",
+            "piv_27982",
+            "piv_22005",
+            "piv_26756",
+            "piv_13428"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "O seu filho pode continuar a ser considerado dependente para efeitos fiscais, desde que esteja a trabalhar e não seja considerado inapto para o trabalho. No entanto, a sua situação específica deve ser analisada com base nas fontes dadas.\n\n1. Não encontrei a resposta nas fontes.\n\n2. Não encontrei a resposta nas fontes.\n\n3. Não encontrei a resposta nas fontes.",
+          "rawSentences": 5,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27691",
+              "processNumber": "27691",
+              "tax": "CIRS",
+              "article": "13",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27691.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26756",
+              "processNumber": "26756",
+              "tax": "CIRS",
+              "article": "78-C",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26756.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27688",
+              "processNumber": "27688",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27688.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1066,
+          "generatedTokens": 85,
+          "stop": "time limit",
+          "searchMs": 593,
+          "firstTokenMs": 52477,
+          "totalMs": 90755
+        },
+        {
+          "id": "q42",
+          "set": "eval/questions.json",
+          "question": "Recebi um apartamento por doação da minha avó e agora quero vendê-lo. Que valor de compra uso para calcular a mais-valia?",
+          "expected": [
+            "piv_28615",
+            "piv_23932",
+            "piv_25330"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "Ao vender o apartamento, deve usar o valor de aquisição de 650.000,00 euros para calcular a mais-valia. Este valor é inferior aos valores de mercado e foi reconhecido como tal na escritura de doação. De acordo com o artigo 45.º do Código do IRS, o valor de aquisição a considerar para efeitos de cálculo de mais-valias é o valor de aquisição do imóvel.\n\nFonte: [2]",
+          "rawSentences": 4,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_28615",
+              "processNumber": "28615",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28615.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_23932",
+              "processNumber": "23932",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23932.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1040,
+          "generatedTokens": 99,
+          "stop": "end of text",
+          "searchMs": 969,
+          "firstTokenMs": 54002,
+          "totalMs": 68228
+        },
+        {
+          "id": "t01",
+          "set": "eval/questions-taxes.json",
+          "question": "Sou psicóloga clínica e dou consultas de psicoterapia no meu consultório. Tenho de cobrar IVA aos pacientes?",
+          "expected": [
+            "civa-piv_25812",
+            "civa-informacao_13014",
+            "civa-inf-vinculativa_2009_2083",
+            "civa-informacao-2933",
+            "civa-informacao-3251",
+            "civa-vinculativa_17439",
+            "civa-vinculativa_19925"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "As fontes e indicam que a psicologia clínica, quando exercida na sua vertente clínica, pode estar isenta de IVA. [1][3] A fonte não fornece informações específicas sobre a psicologia clínica, mas indica que os serviços de psicologia clínica e ludoterapia estão sujeitos a IVA. [2]",
+          "rawOutput": "A aplicação do IVA às consultas de psicoterapia depende da sua atividade e formação. Se a sua atividade for enquadrada na psicologia clínica e se encontrar devidamente habilitada para o seu exercício, então as consultas de psicoterapia podem estar isentas de IVA. As fontes [1] e [3] indicam que a psicologia clínica, quando exercida na sua vertente clínica, pode estar isenta de IVA. No entanto, se a sua atividade for diferente da psicologia clínica, como a meditação, então as consultas podem estar sujeitas a IVA. A fonte [2] não fornece informações específicas sobre a psicologia clínica, mas indica que os serviços de psicologia clínica e ludoterapia estão sujeitos a IVA.",
+          "rawSentences": 5,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-inf-vinculativa_2009_2083",
+              "processNumber": "2083",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INF.Vinculativa_2009_2083.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-piv_27623",
+              "processNumber": "27623",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_27623.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-informacao_13593",
+              "processNumber": "13593",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INFORMACAO_13593.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1074,
+          "generatedTokens": 151,
+          "stop": "end of text",
+          "searchMs": 1877,
+          "firstTokenMs": 48082,
+          "totalMs": 70047
+        },
+        {
+          "id": "t05",
+          "set": "eval/questions-taxes.json",
+          "question": "Vou começar a dar aulas de vela a um clube como trabalhador independente e conto faturar pouco por ano. Posso ficar sem cobrar IVA?",
+          "expected": [
+            "civa-12468",
+            "civa-informacao_13593"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "Não encontrei a resposta nas fontes. As fontes não abordam diretamente o seu caso específico de faturar pouco por ano. No entanto, as fontes fornecem informações gerais sobre isenções de IVA e requisitos de contabilidade para atividades culturais, recreativas e desportivas.",
+          "rawSentences": 3,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-12468",
+              "processNumber": "12468",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/12468.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-informacao_7641",
+              "processNumber": "7641",
+              "tax": "CIVA",
+              "article": "2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/Informacao_7641.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-piv_26934",
+              "processNumber": "26934",
+              "tax": "CIVA",
+              "article": "18",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_26934.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-fd_piv_16670",
+              "processNumber": "16670",
+              "tax": "CIRC",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_16670.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1148,
+          "generatedTokens": 58,
+          "stop": "end of text",
+          "searchMs": 586,
+          "firstTokenMs": 51539,
+          "totalMs": 60333
+        },
+        {
+          "id": "t09",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha empresa quer pagar um seguro de saúde a todos os trabalhadores efetivos. Esse custo conta como gasto no IRC?",
+          "expected": [
+            "circ-piv_25976",
+            "circ-piv_12659_3139_2017",
+            "circ-piv_14217_2018_003021_dsirc",
+            "circ-fd_piv_24493"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "O seguro",
+          "rawSentences": 0,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25976",
+              "processNumber": "25976",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25976.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_20548",
+              "processNumber": "20548",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_20548.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-piv_26226",
+              "processNumber": "26226",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_26226.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1147,
+          "generatedTokens": 2,
+          "stop": "time limit",
+          "searchMs": 799,
+          "firstTokenMs": 89380,
+          "totalMs": 90982
+        },
+        {
+          "id": "t13",
+          "set": "eval/questions-taxes.json",
+          "question": "Somos uma associação sem fins lucrativos isenta de IRC e recebemos rendas de um prédio que nos deixaram. Essas rendas também estão isentas?",
+          "expected": [
+            "circ-piv_28454",
+            "circ-fd_circ_536_2017",
+            "circ-piv_30113"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "De acordo com a fonte, a questão em apreço é saber se essas rendas são isentas de IRC ao abrigo dos artigos 10.º e 11.º do Código do IRC. [1] A fonte esclarece que os rendimentos auferidos pela associação no âmbito do Protocolo celebrado com o Fundo estão isentos de IRC, mas não especifica se isso se aplica às rendas recebidas do prédio. [2] A fonte indica que os rendimentos não sujeitos a IRC incluem as quotas pagas pelos associados e os subsídios destinados a financiar a realização dos fins estatutários, mas não menciona especificamente as rendas recebidas. [3]",
+          "rawOutput": "As rendas recebidas pela associação não estão automaticamente isentas de IRC. De acordo com a fonte [1], a questão em apreço é saber se essas rendas são isentas de IRC ao abrigo dos artigos 10.º e 11.º do Código do IRC. A fonte [2] esclarece que os rendimentos auferidos pela associação no âmbito do Protocolo celebrado com o Fundo estão isentos de IRC, mas não especifica se isso se aplica às rendas recebidas do prédio. A fonte [3] indica que os rendimentos não sujeitos a IRC incluem as quotas pagas pelos associados e os subsídios destinados a financiar a realização dos fins estatutários, mas não menciona especificamente as rendas recebidas. A fonte [4] refere que a perda de isenção de IRC pode",
+          "rawSentences": 4,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25027",
+              "processNumber": "25027",
+              "tax": "CIRC",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25027.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-piv_21004",
+              "processNumber": "21004",
+              "tax": "CIRC",
+              "article": "54",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_21004.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_16336",
+              "processNumber": "16336",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_16336.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-ficha_doutrinaria_514_18",
+              "processNumber": "514/18",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/Ficha_doutrinaria_514_18.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1148,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 1229,
+          "firstTokenMs": 56202,
+          "totalMs": 80990
+        },
+        {
+          "id": "t17",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha loja vai sortear vales de compras pelos clientes. Há imposto do selo sobre esses prémios?",
+          "expected": [
+            "selo-is_iv_19706",
+            "selo-is_iv_12749",
+            "selo-is_iv_23309",
+            "selo-is_ive-14602",
+            "selo-is_ive_14735",
+            "selo-ive_17955"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Os vales de compras obtidos no sorteio são qualificados como prémios em espécie e estão sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45%. [1] Os prémios a atribuir em sorteios ou concursos devem ser publicamente anunciados pelo seu valor líquido, e o promotor deve fazer constar essa informação do regulamento do concurso a enviar à Secretaria-Geral do Ministério da Administração Interna. [2]",
+          "rawOutput": "Os vales de compras obtidos no sorteio são qualificados como prémios em espécie e estão sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45% [1].\n\nOs prémios a atribuir em sorteios ou concursos devem ser publicamente anunciados pelo seu valor líquido, e o promotor deve fazer constar essa informação do regulamento do concurso a enviar à Secretaria-Geral do Ministério da Administração Interna [2].\n\nOs prémios atribuídos em sorteios ou concursos, com exceção dos prémios dos jogos sociais previstos na verba n.º 11.3 da presente Tabela, estão sujeitos a Imposto do Selo \"(o)s prémios de quaisquer sorteios ou concursos, com exceção dos prémios dos jogos sociais previstos",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "selo-is_iv_19706",
+              "processNumber": "19706",
+              "tax": "SELO",
+              "article": "1",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IV_19706.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "selo-is_ive_13951",
+              "processNumber": "13951",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_13951.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "selo-is_ive_16359",
+              "processNumber": "16359",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_16359.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "selo-piv_26950",
+              "processNumber": "26950",
+              "tax": "SELO",
+              "article": "Verba 11.2.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/PIV_26950.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1148,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 495,
+          "firstTokenMs": 48897,
+          "totalMs": 69795
+        },
+        {
+          "id": "t21",
+          "set": "eval/questions-taxes.json",
+          "question": "Passei o meu apartamento para alojamento local. Tenho de mudar a afetação na caderneta predial de habitação para serviços?",
+          "expected": [
+            "cimi-ive_9931_cimi_art_6",
+            "cimi-ive_10728_cimi_art_6"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "A passagem do seu apartamento para alojamento local não implica necessariamente a mudança da afetação na caderneta predial de habitação para serviços. De acordo com o processo 27686, a afetação a Alojamento Local não altera a classificação do prédio de habitação para prédio de serviços. No entanto, é importante verificar as condições específicas do seu caso, uma vez que a afetação a Alojamento Local pode ter implicações fiscais.",
+          "rawSentences": 3,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "cimt-piv_27686",
+              "processNumber": "27686",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_27686.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "cimt-imt_ive_10727",
+              "processNumber": "10727",
+              "tax": "CIMT",
+              "article": "17",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/IMT_IVE_10727.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "cimt-piv_26681",
+              "processNumber": "26681",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_26681.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1097,
+          "generatedTokens": 97,
+          "stop": "end of text",
+          "searchMs": 416,
+          "firstTokenMs": 52086,
+          "totalMs": 63947
+        }
+      ]
+    },
+    {
+      "name": "phi-4-mini",
+      "model": "microsoft/Phi-4-mini-instruct-onnx@fc04c8f93df696602fd9f300a30d1bf2e3081347",
+      "licence": "MIT",
+      "sizeOnDiskBytes": 4930550251,
+      "recordedAt": "2026-10-03T12:22:27Z",
+      "machine": "16 logical processors, Microsoft Windows NT 10.0.26200.0",
+      "loadMs": 14014,
+      "peakWorkingSetBytes": 5898551296,
+      "settings": "4 passages, 180 tokens each at most, prompt budget 1150 tokens, 180 new tokens, time limit 90 s, greedy",
+      "metrics": {
+        "rawSentences": 40,
+        "validRawSentences": 34,
+        "rawValidShare": 0.85,
+        "questionsWithExpectedProvided": 9,
+        "questionsCitingExpected": 7,
+        "expectedCitedShare": 0.778,
+        "refusals": 2,
+        "refusalRate": 0.167,
+        "firstTokenP50Ms": 42200,
+        "firstTokenP95Ms": 48343,
+        "totalP50Ms": 62935,
+        "totalP95Ms": 95729
+      },
+      "transcripts": [
+        {
+          "id": "q01",
+          "set": "eval/questions.json",
+          "question": "Vendi o apartamento onde morava e quero usar o dinheiro para comprar uma casa nova para viver e outra para pôr a arrendar. Fico isento de mais-valias sobre o valor todo?",
+          "expected": [
+            "piv_31329",
+            "piv_30947",
+            "piv_30696"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "No caso da venda do apartamento onde se mora, se o lucro da venda for reinvestido na compra da nova moradia, pode ser isento do pagamento de mais-valias sobre o valor total, conforme indicado na fonte. [1] No entanto, para confirmar o percentual exento, seria necessário consultar o IRS diretamente, pois na fonte é mencionado que não residente tem o benefício do reinvestimento, o que sugere que o percentual exento pode variar com base na situação específica do indivíduo. [2] Além disso, na fonte é mencionado que a prorrogação do prazo para reinvestimento de mais-valias na compra de habitação própria permanente foi concedida, o que pode influenciar o caso do indivíduo na questão da tributação das mais-valias em um período prolongado. [4]",
+          "rawOutput": "No caso da venda do apartamento onde se mora, se o lucro da venda for reinvestido na compra da nova moradia, pode ser isento do pagamento de mais-valias sobre o valor total, conforme indicado na fonte [1]. No entanto, para confirmar o percentual exento, seria necessário consultar o IRS diretamente, pois na fonte [2] é mencionado que não residente tem o benefício do reinvestimento, o que sugere que o percentual exento pode variar com base na situação específica do indivíduo. Além disso, na fonte [4] é mencionado que a prorrogação do prazo para reinvestimento de mais-valias na compra de habitação própria permanente foi concedida, o que pode influenciar o caso do indivíduo na questão da tributação das mais-valias em um período prolongado.\n\n[1][2][4]",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_26895",
+              "processNumber": "26895",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26895.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28882",
+              "processNumber": "28882",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28882.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_29178",
+              "processNumber": "29178",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29178.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1138,
+          "generatedTokens": 170,
+          "stop": "end of text",
+          "searchMs": 282,
+          "firstTokenMs": 33069,
+          "totalMs": 50735
+        },
+        {
+          "id": "q09",
+          "set": "eval/questions.json",
+          "question": "Arrendei o meu apartamento a uma empresa que o usa para alojar um funcionário. Posso ter a taxa mais baixa dos contratos de arrendamento para habitação de longa duração?",
+          "expected": [
+            "piv_30751",
+            "piv_30248",
+            "piv_28573",
+            "piv_27608",
+            "piv_26047"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "A alteração do contrato em um contrato de arrendamento para habitação de longa duração pode permitir uma redução da taxa de IRS aplicável, conforme mencionado na fonte. [4] No entanto, não foi especificado se essa redução da taxa é aplicável na sua situação na fonte. [4]",
+          "rawOutput": "A alteração do contrato em um contrato de arrendamento para habitação de longa duração pode permitir uma redução da taxa de IRS aplicável, conforme mencionado na fonte [4]. No entanto, não foi especificado se essa redução da taxa é aplicável na sua situação na fonte [4]. Portanto, não encontrei a resposta nas fontes.",
+          "rawSentences": 3,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_25838",
+              "processNumber": "25838",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25838.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26047",
+              "processNumber": "26047",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26047.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27569",
+              "processNumber": "27569",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27569.pdf",
+              "truncated": false
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_27608",
+              "processNumber": "27608",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27608.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1103,
+          "generatedTokens": 67,
+          "stop": "end of text",
+          "searchMs": 861,
+          "firstTokenMs": 35230,
+          "totalMs": 60034
+        },
+        {
+          "id": "q17",
+          "set": "eval/questions.json",
+          "question": "Sou estrangeiro, estudei no meu país e vim trabalhar para Portugal. Também tenho direito ao IRS Jovem?",
+          "expected": [
+            "piv_28682",
+            "piv_28538"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "A requisição do IRS Jovem é aplicável se você tiver direito ao regime do IRS Jovem em Portugal. [4] O IRS Jovem é um regime tributário destinado às pessoas que estão em um período de transição entre o status de dependente ou casada separadamente, ou casada separadamente, e o status de casada ou casada separadamente. [2] Ele permite que um indivíduo calcule o imposto sobre o rendimento com um período de 10 anos, em vez do período habitual dos 5 anos. [4] No entanto, se você estiver em um período de transição entre o status de dependente ou casada separadamente, ou casada separadamente, e o status de casada ou casada separadamente, você não pode optar pelo IRS Jovem. [1]",
+          "rawOutput": "A requisição do IRS Jovem é aplicável se você tiver direito ao regime do IRS Jovem em Portugal [4]. O IRS Jovem é um regime tributário destinado às pessoas que estão em um período de transição entre o status de dependente ou casada separadamente, ou casada separadamente, e o status de casada ou casada separadamente [2]. Ele permite que um indivíduo calcule o imposto sobre o rendimento com um período de 10 anos, em vez do período habitual dos 5 anos [4]. No entanto, se você estiver em um período de transição entre o status de dependente ou casada separadamente, ou casada separadamente, e o status de casada ou casada separadamente, você não pode optar pelo IRS Jovem [1]. O IRS Jovem não é aplicável se você estiver em um período de transição entre",
+          "rawSentences": 4,
+          "validRawSentences": 4,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27746",
+              "processNumber": "27746",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27746.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26968",
+              "processNumber": "26968",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26968.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28538",
+              "processNumber": "28538",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28538.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_27751",
+              "processNumber": "27751",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27751.pdf",
+              "truncated": false
+            }
+          ],
+          "promptTokens": 1019,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 727,
+          "firstTokenMs": 44510,
+          "totalMs": 62886
+        },
+        {
+          "id": "q26",
+          "set": "eval/questions.json",
+          "question": "Vendi uma casa e tive de pagar ao banco para liquidar o empréstimo e cancelar a hipoteca. Posso abater esses encargos ao ganho da venda?",
+          "expected": [
+            "piv_30373"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "A liquidação do empréstimo pode ser considerada como um encargo inerente à venda, mas não é fiscalmente abatera nos ganhos da venda. [4] O valor dos encargos não é abate na mais-valia na tributação em IRS. [4] A dedutibilidade dos encargos relacionados à liquidação do empréstimo em um apuramento dos ganhos tributados em IRS depende da situação específica do proponente da dedução. [1]",
+          "rawOutput": "A liquidação do empréstimo pode ser considerada como um encargo inerente à venda, mas não é fiscalmente abatera nos ganhos da venda [4]. O valor dos encargos não é abate na mais-valia na tributação em IRS [4]. \n\nA dedutibilidade dos encargos relacionados à liquidação do empréstimo em um apuramento dos ganhos tributados em IRS depende da situação específica do proponente da dedução [1]. \n\nA dedutibilidade dos encargos relacionados à liquidação do empréstimo em um apuramento dos ganhos tributados em IRS depende da situação específica do proponente da dedução [1]. \n\nA dedutibilidade dos encargos relacionados à liquidação do empréstimo em um apuramento dos ganhos tributados em IRS depende da situação específica do proponente da dedução [1]. \n\nA dedutibilidade dos encargos relacionados à",
+          "rawSentences": 5,
+          "validRawSentences": 5,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_23518",
+              "processNumber": "23518",
+              "tax": "CIRS",
+              "article": "51",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23518.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_25748",
+              "processNumber": "25748",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25748.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_26804",
+              "processNumber": "26804",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26804.pdf",
+              "truncated": false
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_30373",
+              "processNumber": "30373",
+              "tax": "CIRS",
+              "article": "51",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_30373.pdf",
+              "truncated": false
+            }
+          ],
+          "promptTokens": 1062,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 333,
+          "firstTokenMs": 47130,
+          "totalMs": 62935
+        },
+        {
+          "id": "q34",
+          "set": "eval/questions.json",
+          "question": "O meu filho tem 30 anos e não consegue trabalhar por causa de uma doença. Posso continuar a pô-lo como dependente?",
+          "expected": [
+            "piv_27691",
+            "piv_27982",
+            "piv_22005",
+            "piv_26756",
+            "piv_13428"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "O seu filho pode ser considerado dependente para efeitos fiscais se tiver um grau de incapacidade, conforme o processo 27691. [1] No entanto, o filho em questão tem 30 anos, o que não atende ao critério de idades inferiores a 35 anos para o regime IRS Jovem. [3] Portanto, não pode continuar a ser considerado dependente sob esse regime devido à sua idades. [4] No entanto, se o seu filho tiver um grau de incapacidade, como 80% ou 60%, pode ser considerado dependente para efeitos fiscais, conforme os processos 27691 e 26756. [1][2] No entanto, o critério da dependência em um agregado familiar não abrange dependentes que não estão em um contrato de trabalho por tempo indeterminado, conforme o processo 24493. [4]",
+          "rawOutput": "O seu filho pode ser considerado dependente para efeitos fiscais se tiver um grau de incapacidade, conforme o processo 27691 [1]. No entanto, o filho em questão tem 30 anos, o que não atende ao critério de idades inferiores a 35 anos para o regime IRS Jovem [3]. Portanto, não pode continuar a ser considerado dependente sob esse regime devido à sua idades [4].\n\nNo entanto, se o seu filho tiver um grau de incapacidade, como 80% ou 60%, pode ser considerado dependente para efeitos fiscais, conforme os processos 27691 [1] e 26756 [2]. No entanto, o critério da dependência em um agregado familiar não abrange dependentes que não estão em um contrato de trabalho por tempo indeterminado, conforme o processo 24493 [4].\n\nPortanto, se o seu filho",
+          "rawSentences": 5,
+          "validRawSentences": 5,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27691",
+              "processNumber": "27691",
+              "tax": "CIRS",
+              "article": "13",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27691.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26756",
+              "processNumber": "26756",
+              "tax": "CIRS",
+              "article": "78-C",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26756.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27688",
+              "processNumber": "27688",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27688.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 972,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 1202,
+          "firstTokenMs": 34321,
+          "totalMs": 69574
+        },
+        {
+          "id": "q42",
+          "set": "eval/questions.json",
+          "question": "Recebi um apartamento por doação da minha avó e agora quero vendê-lo. Que valor de compra uso para calcular a mais-valia?",
+          "expected": [
+            "piv_28615",
+            "piv_23932",
+            "piv_25330"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "No caso da alienação de um imóvel adquirido por doação, o valor de aquisição a considerar para efeitos de cálculo da mais-valia é o valor vigente nos dois anos anteriores à doação, conforme declarado na fonte. [2] Este valor não será considerado o valor que tenha servido de base à liquidação de imposto do selo, mas sim o valor de aquisição em si. [2] Assim, se você recebeu um apartamento por doação da sua avó, este valor será o referenceado para o cálculo da mais-valia na venda do imóvel. [2]",
+          "rawOutput": "No caso da alienação de um imóvel adquirido por doação, o valor de aquisição a considerar para efeitos de cálculo da mais-valia é o valor vigente nos dois anos anteriores à doação, conforme declarado na fonte [2]. Este valor não será considerado o valor que tenha servido de base à liquidação de imposto do selo, mas sim o valor de aquisição em si [2]. Assim, se você recebeu um apartamento por doação da sua avó, este valor será o referenceado para o cálculo da mais-valia na venda do imóvel [2]. [2]",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_28615",
+              "processNumber": "28615",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28615.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_23932",
+              "processNumber": "23932",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23932.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_26895",
+              "processNumber": "26895",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26895.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1139,
+          "generatedTokens": 115,
+          "stop": "end of text",
+          "searchMs": 1945,
+          "firstTokenMs": 48161,
+          "totalMs": 65598
+        },
+        {
+          "id": "t01",
+          "set": "eval/questions-taxes.json",
+          "question": "Sou psicóloga clínica e dou consultas de psicoterapia no meu consultório. Tenho de cobrar IVA aos pacientes?",
+          "expected": [
+            "civa-piv_25812",
+            "civa-informacao_13014",
+            "civa-inf-vinculativa_2009_2083",
+            "civa-informacao-2933",
+            "civa-informacao-3251",
+            "civa-vinculativa_17439",
+            "civa-vinculativa_19925"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "A psicóloga clínica que presta consultas de psicoterapia em um consultório é uma sociedade por quotas, regista para efeitos fiscais com atividade de \"outras atividades educativas, N.E.-CAE: 085593, enquadrada no regime normal de tributação, com periodicidade trimestral, em sede de IVA\". [1] Tais serviços em psicologia clínica são isentos do IVA, sob o regime especial previsto na alínea 1) do artigo 9.º do CIVA, quando atendem à vertente clínica, como seja, o diagnóstico ou o tratamento da doença ou anomalias da saúde em um relacionamento de confiança entre o paciente e o prestador dos serviços. [2]",
+          "rawOutput": "A psicóloga clínica que presta consultas de psicoterapia em um consultório é uma sociedade por quotas, regista para efeitos fiscais com atividade de \"outras atividades educativas, N.E.-CAE: 085593, enquadrada no regime normal de tributação, com periodicidade trimestral, em sede de IVA\" [1]. Tais serviços em psicologia clínica são isentos do IVA, sob o regime especial previsto na alínea 1) do artigo 9.º do CIVA, quando atendem à vertente clínica, como seja, o diagnóstico ou o tratamento da doença ou anomalias da saúde em um relacionamento de confiança entre o paciente e o prestador dos serviços [2]. Como psicóloga clínica em um consultório, se você for exercises na vertente clínica, pode beneficiar do enquadramento na isenção prevista na alínea 1) do artigo 9",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-inf-vinculativa_2009_2083",
+              "processNumber": "2083",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INF.Vinculativa_2009_2083.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-piv_27623",
+              "processNumber": "27623",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_27623.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-informacao_13593",
+              "processNumber": "13593",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INFORMACAO_13593.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "civa-vinculativa_17439",
+              "processNumber": "17439",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/Vinculativa_17439.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1136,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 1227,
+          "firstTokenMs": 42200,
+          "totalMs": 76363
+        },
+        {
+          "id": "t05",
+          "set": "eval/questions-taxes.json",
+          "question": "Vou começar a dar aulas de vela a um clube como trabalhador independente e conto faturar pouco por ano. Posso ficar sem cobrar IVA?",
+          "expected": [
+            "civa-12468",
+            "civa-informacao_13593"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "No caso da sua atividade como professor de vela, se você estiver registo para efeitos fiscais com o CIRS 1519 - \"Outros prestadores de serviços\" (Fonte 1), pode estar sujeito ao regime especial de isenção previsto no artigo 53.º do CIVA (Fonte 1). No entanto, se você estiver registo para efeitos fiscais com o CIRC 88910 - \"Actividades de cuidados para crianças, sem alojamento\" (Fonte 2), os rendimentos derivados da sua atividade não estão isentos do",
+          "rawSentences": 1,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-12468",
+              "processNumber": "12468",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/12468.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-informacao_7641",
+              "processNumber": "7641",
+              "tax": "CIVA",
+              "article": "2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/Informacao_7641.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-piv_26934",
+              "processNumber": "26934",
+              "tax": "CIVA",
+              "article": "18",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_26934.pdf",
+              "truncated": false
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-fd_piv_16670",
+              "processNumber": "16670",
+              "tax": "CIRC",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_16670.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1140,
+          "generatedTokens": 110,
+          "stop": "time limit",
+          "searchMs": 4893,
+          "firstTokenMs": 48343,
+          "totalMs": 95729
+        },
+        {
+          "id": "t09",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha empresa quer pagar um seguro de saúde a todos os trabalhadores efetivos. Esse custo conta como gasto no IRC?",
+          "expected": [
+            "circ-piv_25976",
+            "circ-piv_12659_3139_2017",
+            "circ-piv_14217_2018_003021_dsirc",
+            "circ-fd_piv_24493"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "A empresa que paga um seguro de saúde a todos os trabalhadores efetivos pode considerar esse custo como gasto no IRC, especialmente se o critério da ANTIQUIDADE for utilizado como base para atribuir diferentes coberturas. [1] No entanto, se o seguro inclui o agregado familiar de apenas ALGUNS trabalhadores, não serão Acrescidos fiscalmente apenas os valores dos agregados. [1] Além disso, se a empresa tiver um único trabalhador, como um sócio-gerente, o seguro pode ser considerado gasto para o período em que o trabalhador está efetivo na empresa. [4] No entanto, se o único trabalhador for um sócio-gerente, o seguro pode ser considerado rendimento da categoria A, na esfera do trabalhador. [4] Não encontrei na fonte o que dizer sobre o seguro que inclui o único trabalhador, exceto um sócio-gerente. [4]",
+          "rawOutput": "A empresa que paga um seguro de saúde a todos os trabalhadores efetivos pode considerar esse custo como gasto no IRC, especialmente se o critério da ANTIQUIDADE for utilizado como base para atribuir diferentes coberturas [1]. No entanto, se o seguro inclui o agregado familiar de apenas ALGUNS trabalhadores, não serão Acrescidos fiscalmente apenas os valores dos agregados [1]. Além disso, se a empresa tiver um único trabalhador, como um sócio-gerente, o seguro pode ser considerado gasto para o período em que o trabalhador está efetivo na empresa [4]. No entanto, se o único trabalhador for um sócio-gerente, o seguro pode ser considerado rendimento da categoria A, na esfera do trabalhador [4]. Não encontrei na fonte o que dizer sobre o seguro que inclui o único trabalhador, exceto um sócio-gerente [4].",
+          "rawSentences": 5,
+          "validRawSentences": 5,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25976",
+              "processNumber": "25976",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25976.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_20548",
+              "processNumber": "20548",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_20548.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-piv_26226",
+              "processNumber": "26226",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_26226.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1139,
+          "generatedTokens": 176,
+          "stop": "end of text",
+          "searchMs": 5017,
+          "firstTokenMs": 26719,
+          "totalMs": 67449
+        },
+        {
+          "id": "t13",
+          "set": "eval/questions-taxes.json",
+          "question": "Somos uma associação sem fins lucrativos isenta de IRC e recebemos rendas de um prédio que nos deixaram. Essas rendas também estão isentas?",
+          "expected": [
+            "circ-piv_28454",
+            "circ-fd_circ_536_2017",
+            "circ-piv_30113"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "refused",
+          "answer": "Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.",
+          "rawOutput": "A associação isenta de IRC em relação às rendas mensais da Associação (Fonte 1), pode ser comparada à questão da isenção das rendas recebidas do prédio (Fonte 4). No entanto, o contexto da Fonte 4 refere-se à associacão não cumprindo o requisito da isenção do Código do IRC (CIRC), o que sugere que, se não cumprido o requisito da isenção, as rendas não estão isentas (Fonte 4).\n\nPortanto, se sua associação não cumpriu o requisito da isenção do CIRC (Fonte 4), as rendas não estão isentas (Fonte 4). Se sua associação cumpriu o requisito da isenção do CIRC (Fonte 1), as rendas mensais da Associação estão isentas (Fonte 1).\n\nSe sua associação não cumpriu o requisito da isenção do C",
+          "rawSentences": 4,
+          "validRawSentences": 0,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25027",
+              "processNumber": "25027",
+              "tax": "CIRC",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25027.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-piv_21004",
+              "processNumber": "21004",
+              "tax": "CIRC",
+              "article": "54",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_21004.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_16336",
+              "processNumber": "16336",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_16336.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-ficha_doutrinaria_514_18",
+              "processNumber": "514/18",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/Ficha_doutrinaria_514_18.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1090,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 1797,
+          "firstTokenMs": 22137,
+          "totalMs": 42676
+        },
+        {
+          "id": "t17",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha loja vai sortear vales de compras pelos clientes. Há imposto do selo sobre esses prémios?",
+          "expected": [
+            "selo-is_iv_19706",
+            "selo-is_iv_12749",
+            "selo-is_iv_23309",
+            "selo-is_ive-14602",
+            "selo-is_ive_14735",
+            "selo-ive_17955"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Os vales de compras obtidos no decurso da iniciativa “” são qualificados prémios em espécie encontrando-se sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45%. [1] Os prémios em espécie em um sorteio ou concurso são sujeitos a um adicional de 10%, num total de 45%. [4]",
+          "rawOutput": "Os vales de compras obtidos no decurso da iniciativa “***” são qualificados prémios em espécie encontrando-se sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45% [1]. Os prémios em espécie em um sorteio ou concurso são sujeitos a um adicional de 10%, num total de 45% [4].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "selo-is_iv_19706",
+              "processNumber": "19706",
+              "tax": "SELO",
+              "article": "1",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IV_19706.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "selo-is_ive_13951",
+              "processNumber": "13951",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_13951.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "selo-is_ive_16359",
+              "processNumber": "16359",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_16359.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "selo-piv_26950",
+              "processNumber": "26950",
+              "tax": "SELO",
+              "article": "Verba 11.2.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/PIV_26950.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1075,
+          "generatedTokens": 80,
+          "stop": "end of text",
+          "searchMs": 1189,
+          "firstTokenMs": 45602,
+          "totalMs": 55730
+        },
+        {
+          "id": "t21",
+          "set": "eval/questions-taxes.json",
+          "question": "Passei o meu apartamento para alojamento local. Tenho de mudar a afetação na caderneta predial de habitação para serviços?",
+          "expected": [
+            "cimi-ive_9931_cimi_art_6",
+            "cimi-ive_10728_cimi_art_6"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "A passagem do seu apartamento para alojamento local não determina automaticamente a alteração da classificação do prédio na caderneta predial da habitação para prédio de serviços. [2] De acordo com o art.º 68.º da LGT, os contribuintes que alteram o uso do imóvel podem ser afetados em termos fiscais, mas isso depende da situação específica. [2] No caso da afetação a Alojamento Local, nos termos do Decreto-lei n.º 128/2014, não há alteração da classificação do prédio na caderneta predial da habitação para prédio de serviços. [2]",
+          "rawOutput": "A passagem do seu apartamento para alojamento local não determina automaticamente a alteração da classificação do prédio na caderneta predial da habitação para prédio de serviços [2]. De acordo com o art.º 68.º da LGT, os contribuintes que alteram o uso do imóvel podem ser afetados em termos fiscais, mas isso depende da situação específica [2]. No caso da afetação a Alojamento Local, nos termos do Decreto-lei n.º 128/2014, não há alteração da classificação do prédio na caderneta predial da habitação para prédio de serviços [2]. No entanto, para efeitos da afetação da habitação para Alojamento Local, nos termos do CIMT, há consequências que podem afetar o regime tributário do imóvel, como ser considerado sob o regime de Alojamento Conjunto ou Estabelecimento de Hospedagem",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "cimt-piv_27686",
+              "processNumber": "27686",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_27686.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "cimt-imt_ive_10727",
+              "processNumber": "10727",
+              "tax": "CIMT",
+              "article": "17",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/IMT_IVE_10727.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "cimt-piv_26681",
+              "processNumber": "26681",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_26681.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_26444",
+              "processNumber": "26444",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26444.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1139,
+          "generatedTokens": 180,
+          "stop": "token limit",
+          "searchMs": 693,
+          "firstTokenMs": 47906,
+          "totalMs": 84327
+        }
+      ]
+    },
+    {
+      "name": "qwen3-4b",
+      "model": "robinsmits/qwen3-4b-instruct-2507-onnx-int4@97d8690faf0cad28279dd10334a67c79f673a57f",
+      "licence": "Apache-2.0",
+      "sizeOnDiskBytes": 2567787195,
+      "recordedAt": "2026-10-03T12:45:07Z",
+      "machine": "16 logical processors, Microsoft Windows NT 10.0.26200.0",
+      "loadMs": 7395,
+      "peakWorkingSetBytes": 4600799232,
+      "settings": "4 passages, 180 tokens each at most, prompt budget 1150 tokens, 180 new tokens, time limit 90 s, greedy",
+      "metrics": {
+        "rawSentences": 27,
+        "validRawSentences": 27,
+        "rawValidShare": 1,
+        "questionsWithExpectedProvided": 8,
+        "questionsCitingExpected": 6,
+        "expectedCitedShare": 0.75,
+        "refusals": 0,
+        "refusalRate": 0,
+        "firstTokenP50Ms": 21615,
+        "firstTokenP95Ms": 24233,
+        "totalP50Ms": 29531,
+        "totalP95Ms": 37576
+      },
+      "transcripts": [
+        {
+          "id": "q01",
+          "set": "eval/questions.json",
+          "question": "Vendi o apartamento onde morava e quero usar o dinheiro para comprar uma casa nova para viver e outra para pôr a arrendar. Fico isento de mais-valias sobre o valor todo?",
+          "expected": [
+            "piv_31329",
+            "piv_30947",
+            "piv_30696"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "No caso de reinvestir o lucro da venda de um imóvel em outro destinado a habitação própria, pode haver isenção de mais-valias, conforme previsto no nº5 do artigo 10º do Código do IRS. [1] A isenção aplica-se apenas ao reinvestimento em imóvel afetado à habitação própria, não em casos de arrendamento ou outras finalidades. [1]",
+          "rawOutput": "No caso de reinvestir o lucro da venda de um imóvel em outro destinado a habitação própria, pode haver isenção de mais-valias, conforme previsto no nº5 do artigo 10º do Código do IRS [1].  \nA isenção aplica-se apenas ao reinvestimento em imóvel afetado à habitação própria, não em casos de arrendamento ou outras finalidades [1].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_26895",
+              "processNumber": "26895",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26895.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28882",
+              "processNumber": "28882",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28882.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1107,
+          "generatedTokens": 95,
+          "stop": "end of text",
+          "searchMs": 222,
+          "firstTokenMs": 23069,
+          "totalMs": 29893
+        },
+        {
+          "id": "q09",
+          "set": "eval/questions.json",
+          "question": "Arrendei o meu apartamento a uma empresa que o usa para alojar um funcionário. Posso ter a taxa mais baixa dos contratos de arrendamento para habitação de longa duração?",
+          "expected": [
+            "piv_30751",
+            "piv_30248",
+            "piv_28573",
+            "piv_27608",
+            "piv_26047"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Pode beneficiar da redução da taxa de IRS prevista no nº 3 do artigo 72º do Código do IRS, desde que o contrato de arrendamento tenha duração superior a 5 anos e o inquilino seja uma pessoa coletiva, como uma empresa, que aloja um funcionário no imóvel. [3] A redução de taxa de IRS aplicável a contratos de arrendamento de longa duração para habitação pode ser concedida quando o contrato é celebrado com uma empresa, desde que o uso seja para fins habitacionais. [2][3]",
+          "rawOutput": "Pode beneficiar da redução da taxa de IRS prevista no nº 3 do artigo 72º do Código do IRS, desde que o contrato de arrendamento tenha duração superior a 5 anos e o inquilino seja uma pessoa coletiva, como uma empresa, que aloja um funcionário no imóvel [3].  \nA redução de taxa de IRS aplicável a contratos de arrendamento de longa duração para habitação pode ser concedida quando o contrato é celebrado com uma empresa, desde que o uso seja para fins habitacionais [2][3].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_25838",
+              "processNumber": "25838",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25838.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26047",
+              "processNumber": "26047",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26047.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27569",
+              "processNumber": "27569",
+              "tax": "CIRS",
+              "article": "72",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27569.pdf",
+              "truncated": false
+            }
+          ],
+          "promptTokens": 1049,
+          "generatedTokens": 132,
+          "stop": "end of text",
+          "searchMs": 1763,
+          "firstTokenMs": 24233,
+          "totalMs": 37576
+        },
+        {
+          "id": "q17",
+          "set": "eval/questions.json",
+          "question": "Sou estrangeiro, estudei no meu país e vim trabalhar para Portugal. Também tenho direito ao IRS Jovem?",
+          "expected": [
+            "piv_28682",
+            "piv_28538"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "Se estiver residente em Portugal e tiver começado a trabalhar após o período de estudo, pode ter direito ao IRS Jovem, desde que o período de 10 anos para a obtenção do benefício seja contado a partir do início da atividade profissional em Portugal. [1] O regime do IRS Jovem pode ser aplicado mesmo se os rendimentos sejam obtidos no estrangeiro, desde que o contribuinte esteja residente em Portugal e tenha cumprido os requisitos de início da atividade profissional. [2][4]",
+          "rawOutput": "Se estiver residente em Portugal e tiver começado a trabalhar após o período de estudo, pode ter direito ao IRS Jovem, desde que o período de 10 anos para a obtenção do benefício seja contado a partir do início da atividade profissional em Portugal [1].  \nO regime do IRS Jovem pode ser aplicado mesmo se os rendimentos sejam obtidos no estrangeiro, desde que o contribuinte esteja residente em Portugal e tenha cumprido os requisitos de início da atividade profissional [2][4].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27746",
+              "processNumber": "27746",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27746.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26968",
+              "processNumber": "26968",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26968.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_28538",
+              "processNumber": "28538",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28538.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "piv_27751",
+              "processNumber": "27751",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27751.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1148,
+          "generatedTokens": 124,
+          "stop": "end of text",
+          "searchMs": 2209,
+          "firstTokenMs": 24155,
+          "totalMs": 35087
+        },
+        {
+          "id": "q26",
+          "set": "eval/questions.json",
+          "question": "Vendi uma casa e tive de pagar ao banco para liquidar o empréstimo e cancelar a hipoteca. Posso abater esses encargos ao ganho da venda?",
+          "expected": [
+            "piv_30373"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "Não, o valor despendido com a liquidação do empréstimo, com vista ao distrate da hipoteca, não é fiscalmente aceite como despesa dedutível do ganho da venda. [1]",
+          "rawOutput": "Não, o valor despendido com a liquidação do empréstimo, com vista ao distrate da hipoteca, não é fiscalmente aceite como despesa dedutível do ganho da venda [1].",
+          "rawSentences": 1,
+          "validRawSentences": 1,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_23518",
+              "processNumber": "23518",
+              "tax": "CIRS",
+              "article": "51",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23518.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_25748",
+              "processNumber": "25748",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_25748.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_26804",
+              "processNumber": "26804",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26804.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 995,
+          "generatedTokens": 48,
+          "stop": "end of text",
+          "searchMs": 462,
+          "firstTokenMs": 20033,
+          "totalMs": 23582
+        },
+        {
+          "id": "q34",
+          "set": "eval/questions.json",
+          "question": "O meu filho tem 30 anos e não consegue trabalhar por causa de uma doença. Posso continuar a pô-lo como dependente?",
+          "expected": [
+            "piv_27691",
+            "piv_27982",
+            "piv_22005",
+            "piv_26756",
+            "piv_13428"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Pode-se considerar o filho como dependente se for inapto para o trabalho, conforme o caso de filhos maiores com incapacidade para manter uma atividade laboral. [2] A possibilidade de incluir um filho maior inapto para o trabalho como dependente é reconhecida em casos de síndrome de Down com grau de incapacidade de 80%. [1]",
+          "rawOutput": "Pode-se considerar o filho como dependente se for inapto para o trabalho, conforme o caso de filhos maiores com incapacidade para manter uma atividade laboral [2].  \nA possibilidade de incluir um filho maior inapto para o trabalho como dependente é reconhecida em casos de síndrome de Down com grau de incapacidade de 80% [1].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_27691",
+              "processNumber": "27691",
+              "tax": "CIRS",
+              "article": "13",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27691.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_26756",
+              "processNumber": "26756",
+              "tax": "CIRS",
+              "article": "78-C",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_26756.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_27688",
+              "processNumber": "27688",
+              "tax": "CIRS",
+              "article": "12-B",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_27688.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1094,
+          "generatedTokens": 86,
+          "stop": "end of text",
+          "searchMs": 526,
+          "firstTokenMs": 21598,
+          "totalMs": 27512
+        },
+        {
+          "id": "q42",
+          "set": "eval/questions.json",
+          "question": "Recebi um apartamento por doação da minha avó e agora quero vendê-lo. Que valor de compra uso para calcular a mais-valia?",
+          "expected": [
+            "piv_28615",
+            "piv_23932",
+            "piv_25330"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Se o apartamento foi recebido por doação da avó, o valor de aquisição a considerar para a mais-valia é o valor vigente nos dois anos anteriores à data da doação, conforme previsto no artigo 45 do CIRS. [2] Esse valor é determinado em função do valor de mercado reconhecido na escritura de doação, e não o valor do imposto do selo. [3]",
+          "rawOutput": "Se o apartamento foi recebido por doação da avó, o valor de aquisição a considerar para a mais-valia é o valor vigente nos dois anos anteriores à data da doação, conforme previsto no artigo 45 do CIRS [2].  \nEsse valor é determinado em função do valor de mercado reconhecido na escritura de doação, e não o valor do imposto do selo [3].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "piv_29065",
+              "processNumber": "29065",
+              "tax": "CIRS",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_29065.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "piv_28615",
+              "processNumber": "28615",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_28615.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "piv_23932",
+              "processNumber": "23932",
+              "tax": "CIRS",
+              "article": "45",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/cirs/Documents/PIV_23932.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1062,
+          "generatedTokens": 97,
+          "stop": "end of text",
+          "searchMs": 418,
+          "firstTokenMs": 20998,
+          "totalMs": 27793
+        },
+        {
+          "id": "t01",
+          "set": "eval/questions-taxes.json",
+          "question": "Sou psicóloga clínica e dou consultas de psicoterapia no meu consultório. Tenho de cobrar IVA aos pacientes?",
+          "expected": [
+            "civa-piv_25812",
+            "civa-informacao_13014",
+            "civa-inf-vinculativa_2009_2083",
+            "civa-informacao-2933",
+            "civa-informacao-3251",
+            "civa-vinculativa_17439",
+            "civa-vinculativa_19925"
+          ],
+          "expectedProvided": true,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "Os serviços de psicoterapia prestados na vertente da psicologia clínica, com finalidade de cuidados de saúde, estão isentos de IVA, conforme previsto no artigo 9.º, alínea 1) do CIVA. [2] A atividade de psicologia clínica, quando exercida com finalidade de cura de doenças ou anomalias de saúde, enquadra-se na isenção prevista no artigo 9.º, alínea 1) do CIVA. [3]",
+          "rawOutput": "Os serviços de psicoterapia prestados na vertente da psicologia clínica, com finalidade de cuidados de saúde, estão isentos de IVA, conforme previsto no artigo 9.º, alínea 1) do CIVA [2].  \nA atividade de psicologia clínica, quando exercida com finalidade de cura de doenças ou anomalias de saúde, enquadra-se na isenção prevista no artigo 9.º, alínea 1) do CIVA [3].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-inf-vinculativa_2009_2083",
+              "processNumber": "2083",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INF.Vinculativa_2009_2083.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-piv_27623",
+              "processNumber": "27623",
+              "tax": "CIVA",
+              "article": "9",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_27623.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-informacao_13593",
+              "processNumber": "13593",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/INFORMACAO_13593.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1099,
+          "generatedTokens": 119,
+          "stop": "end of text",
+          "searchMs": 479,
+          "firstTokenMs": 21615,
+          "totalMs": 29450
+        },
+        {
+          "id": "t05",
+          "set": "eval/questions-taxes.json",
+          "question": "Vou começar a dar aulas de vela a um clube como trabalhador independente e conto faturar pouco por ano. Posso ficar sem cobrar IVA?",
+          "expected": [
+            "civa-12468",
+            "civa-informacao_13593"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Pode ficar sem cobrar IVA, pois a prestação de serviços de ensino desportivo a um clube desportivo enquadra-se no regime especial de isenção previsto no artigo 53.º do CIVA. [1] A isenção aplica-se a atividades de ensino desportivo e recreativo, como a de professor de vela, desde 2007. [1] A isenção está prevista no regime especial de isenção do IVA, aplicável a atividades de ensino desportivo. [1]",
+          "rawOutput": "Pode ficar sem cobrar IVA, pois a prestação de serviços de ensino desportivo a um clube desportivo enquadra-se no regime especial de isenção previsto no artigo 53.º do CIVA [1].  \nA isenção aplica-se a atividades de ensino desportivo e recreativo, como a de professor de vela, desde 2007 [1].  \nA isenção está prevista no regime especial de isenção do IVA, aplicável a atividades de ensino desportivo [1].",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "civa-12468",
+              "processNumber": "12468",
+              "tax": "CIVA",
+              "article": "53",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/12468.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "civa-informacao_7641",
+              "processNumber": "7641",
+              "tax": "CIVA",
+              "article": "2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/Informacao_7641.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "civa-piv_26934",
+              "processNumber": "26934",
+              "tax": "CIVA",
+              "article": "18",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/despesa/civa/Documents/PIV_26934.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1064,
+          "generatedTokens": 123,
+          "stop": "end of text",
+          "searchMs": 255,
+          "firstTokenMs": 20953,
+          "totalMs": 28757
+        },
+        {
+          "id": "t09",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha empresa quer pagar um seguro de saúde a todos os trabalhadores efetivos. Esse custo conta como gasto no IRC?",
+          "expected": [
+            "circ-piv_25976",
+            "circ-piv_12659_3139_2017",
+            "circ-piv_14217_2018_003021_dsirc",
+            "circ-fd_piv_24493"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "O seguro de saúde atribuído a todos os trabalhadores efetivos pode ser considerado dedutível no IRC, desde que a atribuição seja generalizada e não baseada em critérios específicos como a antiguidade. [1] A empresa pode considerar o custo como dedutível se o seguro for oferecido a todos os colaboradores permanentes, sem exclusões, conforme o entendimento de que a atribuição deve ser geral. [2] Em caso de exclusão de um colaborador por motivo de saúde, com possibilidade de seguro individual, o benefício pode ser considerado dedutível se a atribuição for geral para os outros. [3]",
+          "rawOutput": "O seguro de saúde atribuído a todos os trabalhadores efetivos pode ser considerado dedutível no IRC, desde que a atribuição seja generalizada e não baseada em critérios específicos como a antiguidade [1].  \nA empresa pode considerar o custo como dedutível se o seguro for oferecido a todos os colaboradores permanentes, sem exclusões, conforme o entendimento de que a atribuição deve ser geral [2].  \nEm caso de exclusão de um colaborador por motivo de saúde, com possibilidade de seguro individual, o benefício pode ser considerado dedutível se a atribuição for geral para os outros [3].",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25976",
+              "processNumber": "25976",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25976.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-fd_piv_24493",
+              "processNumber": "24493",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_24493.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_20548",
+              "processNumber": "20548",
+              "tax": "CIRC",
+              "article": "43",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_20548.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1036,
+          "generatedTokens": 142,
+          "stop": "end of text",
+          "searchMs": 300,
+          "firstTokenMs": 20213,
+          "totalMs": 29531
+        },
+        {
+          "id": "t13",
+          "set": "eval/questions-taxes.json",
+          "question": "Somos uma associação sem fins lucrativos isenta de IRC e recebemos rendas de um prédio que nos deixaram. Essas rendas também estão isentas?",
+          "expected": [
+            "circ-piv_28454",
+            "circ-fd_circ_536_2017",
+            "circ-piv_30113"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "As rendas de um prédio recebidas por uma associação sem fins lucrativos não são automaticamente isentas de IRC, pois a isenção prevista no artigo 10.º do Código do IRC depende da observância de requisitos específicos, como a realização dos fins estatutários. [4] Os rendimentos auferidos no âmbito de um protocolo para a realização dos fins estatutários estão isentos de IRC, nos termos do n.º 3 do artigo 54.º do Código do IRC. [2] Os subsídios destinados a financiar os fins estatutários são considerados rendimentos isentos, conforme previsto no artigo 3.º do processo 16336. [3]",
+          "rawOutput": "As rendas de um prédio recebidas por uma associação sem fins lucrativos não são automaticamente isentas de IRC, pois a isenção prevista no artigo 10.º do Código do IRC depende da observância de requisitos específicos, como a realização dos fins estatutários [4].  \nOs rendimentos auferidos no âmbito de um protocolo para a realização dos fins estatutários estão isentos de IRC, nos termos do n.º 3 do artigo 54.º do Código do IRC [2].  \nOs subsídios destinados a financiar os fins estatutários são considerados rendimentos isentos, conforme previsto no artigo 3.º do processo 16336 [3].",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "circ-piv_25027",
+              "processNumber": "25027",
+              "tax": "CIRC",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_25027.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "circ-piv_21004",
+              "processNumber": "21004",
+              "tax": "CIRC",
+              "article": "54",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/PIV_21004.pdf",
+              "truncated": false
+            },
+            {
+              "id": 3,
+              "rulingId": "circ-fd_piv_16336",
+              "processNumber": "16336",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/FD_PIV_16336.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "circ-ficha_doutrinaria_514_18",
+              "processNumber": "514/18",
+              "tax": "CIRC",
+              "article": "10",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/rendimento/circ/Documents/Ficha_doutrinaria_514_18.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1147,
+          "generatedTokens": 174,
+          "stop": "end of text",
+          "searchMs": 179,
+          "firstTokenMs": 22883,
+          "totalMs": 34200
+        },
+        {
+          "id": "t17",
+          "set": "eval/questions-taxes.json",
+          "question": "A minha loja vai sortear vales de compras pelos clientes. Há imposto do selo sobre esses prémios?",
+          "expected": [
+            "selo-is_iv_19706",
+            "selo-is_iv_12749",
+            "selo-is_iv_23309",
+            "selo-is_ive-14602",
+            "selo-is_ive_14735",
+            "selo-ive_17955"
+          ],
+          "expectedProvided": true,
+          "expectedCited": true,
+          "status": "answered",
+          "answer": "Os vales de compras obtidos em sorteios são considerados prémios em espécie e estão sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45%. [1] A taxa de 45% aplica-se aos prémios em espécie, incluindo vales de compras, nos sorteios, conforme previsto na Verba 11.2.2. [4]",
+          "rawOutput": "Os vales de compras obtidos em sorteios são considerados prémios em espécie e estão sujeitos a imposto do selo da Verba 11.2.2 da TGIS à taxa de 45% [1].  \nA taxa de 45% aplica-se aos prémios em espécie, incluindo vales de compras, nos sorteios, conforme previsto na Verba 11.2.2 [4].",
+          "rawSentences": 2,
+          "validRawSentences": 2,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "selo-is_iv_19706",
+              "processNumber": "19706",
+              "tax": "SELO",
+              "article": "1",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IV_19706.pdf",
+              "truncated": false
+            },
+            {
+              "id": 2,
+              "rulingId": "selo-is_ive_13951",
+              "processNumber": "13951",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_13951.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "selo-is_ive_16359",
+              "processNumber": "16359",
+              "tax": "SELO",
+              "article": "Verba 11.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/IS_IVE_16359.pdf",
+              "truncated": true
+            },
+            {
+              "id": 4,
+              "rulingId": "selo-piv_26950",
+              "processNumber": "26950",
+              "tax": "SELO",
+              "article": "Verba 11.2.2",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/selo/Documents/PIV_26950.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1146,
+          "generatedTokens": 104,
+          "stop": "end of text",
+          "searchMs": 234,
+          "firstTokenMs": 23276,
+          "totalMs": 31126
+        },
+        {
+          "id": "t21",
+          "set": "eval/questions-taxes.json",
+          "question": "Passei o meu apartamento para alojamento local. Tenho de mudar a afetação na caderneta predial de habitação para serviços?",
+          "expected": [
+            "cimi-ive_9931_cimi_art_6",
+            "cimi-ive_10728_cimi_art_6"
+          ],
+          "expectedProvided": false,
+          "expectedCited": false,
+          "status": "answered",
+          "answer": "A afetação de um imóvel adquirido para habitação a Alojamento Local pode levar à caducidade do benefício de isenção ou redução de taxas, se o destino for alterado durante seis anos após a aquisição, exceto em casos específicos como venda ou alteração de agregado familiar. [1] A mudança de destino do imóvel de habitação para alojamento local implica alteração da classificação do imóvel, conforme previsto no Decreto-lei n.º 128/2014. [2] A afetação a Alojamento Local, mesmo em modalidades como hostel, pode ter consequências no regime tributário e na classificação do imóvel, como previsto no artigo 11 do CIMT. [3]",
+          "rawOutput": "A afetação de um imóvel adquirido para habitação a Alojamento Local pode levar à caducidade do benefício de isenção ou redução de taxas, se o destino for alterado durante seis anos após a aquisição, exceto em casos específicos como venda ou alteração de agregado familiar [1].  \nA mudança de destino do imóvel de habitação para alojamento local implica alteração da classificação do imóvel, conforme previsto no Decreto-lei n.º 128/2014 [2].  \nA afetação a Alojamento Local, mesmo em modalidades como hostel, pode ter consequências no regime tributário e na classificação do imóvel, como previsto no artigo 11 do CIMT [3].",
+          "rawSentences": 3,
+          "validRawSentences": 3,
+          "provided": [
+            {
+              "id": 1,
+              "rulingId": "cimt-piv_27686",
+              "processNumber": "27686",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_27686.pdf",
+              "truncated": true
+            },
+            {
+              "id": 2,
+              "rulingId": "cimt-imt_ive_10727",
+              "processNumber": "10727",
+              "tax": "CIMT",
+              "article": "17",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/IMT_IVE_10727.pdf",
+              "truncated": true
+            },
+            {
+              "id": 3,
+              "rulingId": "cimt-piv_26681",
+              "processNumber": "26681",
+              "tax": "CIMT",
+              "article": "11",
+              "sourceUrl": "https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/informacoes_vinculativas/patrimonio/cimt/Documents/PIV_26681.pdf",
+              "truncated": true
+            }
+          ],
+          "promptTokens": 1121,
+          "generatedTokens": 178,
+          "stop": "end of text",
+          "searchMs": 197,
+          "firstTokenMs": 23274,
+          "totalMs": 35614
+        }
+      ]
+    }
+  ],
+  "questions": [
+    "eval/questions.json",
+    "eval/questions-taxes.json"
+  ],
+  "sample": [
+    "q01",
+    "q09",
+    "q17",
+    "q26",
+    "q34",
+    "q42",
+    "t01",
+    "t05",
+    "t09",
+    "t13",
+    "t17",
+    "t21"
+  ]
+}

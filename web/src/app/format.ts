@@ -66,6 +66,11 @@ export function rulingCount(count: number): string {
   return count === 1 ? '1 informação vinculativa' : `${count} informações vinculativas`;
 }
 
+/** The DOM id of the result at this rank (from 1), which the answer's citation markers link to. */
+export function resultAnchor(rank: number): string {
+  return `result-${rank}`;
+}
+
 /** Live announcement for a completed search. */
 export function foundAnnouncement(count: number): string {
   if (count === 0) return 'Nenhuma informação vinculativa encontrada.';

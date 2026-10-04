@@ -1,6 +1,6 @@
-# Builds and tests on Windows with the synthetic fixture corpus and the fake embedder.
-# Never crawls, never downloads the embedding model, uses no secrets: the .NET tests that need the
-# real model are skipped because data/models does not exist here.
+# Builds and tests on Windows with the synthetic fixture corpus, the fake embedder and the fake
+# answer generator. Never crawls, never downloads the embedding or answer model, uses no secrets:
+# the .NET tests that need a real model are skipped because data/models does not exist here.
 name: CI
 
 on:

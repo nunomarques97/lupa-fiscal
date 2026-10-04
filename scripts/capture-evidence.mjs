@@ -8,9 +8,16 @@
 // empty and error. Asserts no horizontal overflow, keyboard-only search and filter use, that the
 // article select is disabled until a tax is chosen and then lists only that tax's articles, URL
 // restore, request ownership (a delayed earlier response, success or failure, never replaces a later
-// one, also when the tax changes mid-request) and retry of the last submitted search. Exits non-zero
-// on any failed assertion.
-// Prerequisites: `dotnet build LupaFiscal.slnx`, `npm --prefix web run build`, and the index in data/.
+// one, also when the tax changes mid-request) and retry of the last submitted search. Those scenarios
+// answer /api/answer with a mocked 503, so they never wait for or compete with the answer model.
+// Answer scenarios: the answered state on the real index and the real answer model (one generation
+// rendered at both widths, requested once more if it was not an answer; citation markers checked
+// against the response and the list, keyboard focus moved to the cited result at each width), and
+// route-mocked adverse states: loading, refused, unavailable, error and answer-only retry, client-side
+// checks, and a late answer of an earlier search (success or failure) never shown.
+// Exits non-zero on any failed assertion.
+// Prerequisites: `dotnet build LupaFiscal.slnx`, `npm --prefix web run build`, the index in data/ and
+// the answer model (`model download --model qwen3-4b`) for the real answer scenario.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -52,6 +59,14 @@ const TAX_LABELS = {
 const VALIDATION = 'Escreva uma pergunta para pesquisar.';
 const ERROR_ANNOUNCEMENT = 'Não foi possível pesquisar.';
 const EMPTY_ANNOUNCEMENT = 'Nenhuma informação vinculativa encontrada.';
+// Answer copy, as in web/src/app/answer-store.ts.
+const REFUSAL_TEXT = 'Não encontrei nas informações vinculativas pesquisadas uma resposta suportada por fontes.';
+const ANSWERED_ANNOUNCEMENT = 'Resposta preparada a partir das passagens citadas.';
+const REFUSED_ANNOUNCEMENT = 'Sem resposta suportada pelas passagens encontradas.';
+const UNAVAILABLE_ANNOUNCEMENT = 'A resposta não está disponível neste momento.';
+const ANSWER_ERROR_ANNOUNCEMENT = 'Não foi possível preparar a resposta.';
+// A real answer takes tens of seconds on a CPU (generation is limited to 90 s on the server).
+const ANSWER_TIMEOUT = 240_000;
 
 const failures = [];
 const passed = [];
@@ -90,6 +105,7 @@ async function startApi() {
   }
   const child = spawn('dotnet', [apiDll, '--web-root', webRoot], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
   let output = '';
+  child.log = () => output;
   child.stdout.on('data', d => (output += d));
   child.stderr.on('data', d => (output += d));
   let exited = false;
@@ -110,6 +126,19 @@ async function startApi() {
   }
   child.kill();
   throw new Error(`The API did not become ready within 180 s:\n${output}`);
+}
+
+/** Waits until the API has loaded the answer model in the background (it logs the outcome). */
+async function waitForAnswerModel(api) {
+  const deadline = Date.now() + 300_000;
+  while (Date.now() < deadline) {
+    const log = api.log();
+    if (/Answer model \S+ loaded/.test(log)) return;
+    const missing = /Answer model .*(not found|was not loaded).*/.exec(log);
+    if (missing) throw new Error(`The answer model is not available to the API: ${missing[0]}`);
+    await new Promise(r => setTimeout(r, 500));
+  }
+  throw new Error('The API did not load the answer model within 300 s.');
 }
 
 const searchUrl = params => '/api/search?' + new URLSearchParams(params).toString();
@@ -169,9 +198,18 @@ async function scenarioData() {
 
 // ---- Page helpers ----
 
-async function openPage(browser, viewport, label) {
+/**
+ * A page with its checks. Unless `realAnswers` is set, /api/answer is answered with a 503 (the state of
+ * an API without the answer model); a scenario may route it again, which takes precedence.
+ */
+async function openPage(browser, viewport, label, { realAnswers = false } = {}) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce' });
   const page = await context.newPage();
+  if (!realAnswers) {
+    await page.route('**/api/answer?**', route =>
+      route.fulfill({ status: 503, contentType: 'application/problem+json', body: JSON.stringify({ status: 503, title: 'The answer model is not available.' }) }),
+    );
+  }
   page.on('request', request => {
     const url = request.url();
     if (!url.startsWith(BASE) && !url.startsWith('data:')) check(label, false, `requested a non-local URL: ${url}`);
@@ -182,15 +220,19 @@ async function openPage(browser, viewport, label) {
       check(label, false, `console error: ${message.text()}`);
     }
   });
-  // Records every value the polite live region takes, to check one announcement per completed search.
+  // Records every value the polite live regions take (results and answer), to check one announcement each.
   await page.addInitScript(() => {
     window.__live = [];
-    const start = () => {
-      const live = document.querySelector('[data-live]');
-      if (!live) return requestAnimationFrame(start);
-      new MutationObserver(() => window.__live.push(live.textContent.trim())).observe(live, { childList: true, characterData: true, subtree: true });
+    window.__answerLive = [];
+    const watch = (selector, values) => {
+      const live = document.querySelector(selector);
+      if (!live) return requestAnimationFrame(() => watch(selector, values));
+      new MutationObserver(() => values.push(live.textContent.trim())).observe(live, { childList: true, characterData: true, subtree: true });
     };
-    document.addEventListener('DOMContentLoaded', start);
+    document.addEventListener('DOMContentLoaded', () => {
+      watch('[data-live]', window.__live);
+      watch('[data-answer-live]', window.__answerLive);
+    });
   });
   return { context, page };
 }
@@ -200,7 +242,8 @@ async function waitForFacets(page) {
 }
 
 const announcements = async page => page.evaluate(() => window.__live.filter(Boolean));
-const clearAnnouncements = async page => page.evaluate(() => (window.__live.length = 0));
+const answerAnnouncements = async page => page.evaluate(() => window.__answerLive.filter(Boolean));
+const clearAnnouncements = async page => page.evaluate(() => (window.__live.length = 0) + (window.__answerLive.length = 0));
 const activeId = page => page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName || '');
 const activeMatches = (page, selector) => page.evaluate(s => !!document.activeElement?.matches(s), selector);
 const topRulingId = page => page.locator('[data-result]').first().getAttribute('data-ruling-id');
@@ -297,9 +340,10 @@ function gate() {
   return { opened, release };
 }
 
-async function shot(page, name, viewport, { needsResults = false } = {}) {
+/** Saves a screenshot after checking it. `scrolled` is for a view scrolled past the notice on purpose. */
+async function shot(page, name, viewport, { needsResults = false, scrolled = false } = {}) {
   const label = `${name} @ ${viewport.width}px`;
-  const report = await page.evaluate(({ needsResults }) => {
+  const report = await page.evaluate(({ needsResults, scrolled }) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const inFirstScreen = el => {
@@ -311,12 +355,13 @@ async function shot(page, name, viewport, { needsResults = false } = {}) {
     const scrollWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
     if (scrollWidth > vw) problems.push(`horizontal overflow: content is ${scrollWidth}px wide in a ${vw}px viewport`);
     const notice = document.querySelector('[data-notice]');
-    if (!inFirstScreen(notice) || !/Não é aconselhamento fiscal/.test(notice.textContent)) problems.push('the not-tax-advice notice is not visible in the first screen');
+    if (!/Não é aconselhamento fiscal/.test(notice?.textContent ?? '')) problems.push('the not-tax-advice notice is missing');
+    else if (!scrolled && !inFirstScreen(notice)) problems.push('the not-tax-advice notice is not visible in the first screen');
     if (document.body.innerText.includes(String.fromCharCode(0x2014))) problems.push('visible text contains an em-dash');
     if (needsResults && ![...document.querySelectorAll('[data-result] mark')].some(inFirstScreen)) problems.push('no highlighted passage text in the first screen');
     return problems;
-  }, { needsResults });
-  check(label, report.length === 0, report.length ? report.join('; ') : 'no horizontal overflow, notice visible, no em-dash');
+  }, { needsResults, scrolled });
+  check(label, report.length === 0, report.length ? report.join('; ') : `no horizontal overflow, notice ${scrolled ? 'present' : 'visible'}, no em-dash`);
   const out = join(evidenceDir, `${name}-${viewport.width}.png`);
   if (existsSync(out)) unlinkSync(out);
   await page.screenshot({ path: out });
@@ -725,6 +770,357 @@ async function multiTax(browser, viewport, data) {
   await context.close();
 }
 
+// ---- Answer scenarios ----
+
+async function waitForAnswer(page, state, timeout = 15_000) {
+  await page.waitForSelector(`[data-answer][data-state="${state}"]`, { timeout });
+}
+
+const shownIds = page => page.locator('[data-result]').evaluateAll(items => items.map(item => item.getAttribute('data-ruling-id')));
+const shownSentences = page => page.locator('[data-answer-sentence]').allTextContents();
+const json = body => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+const problem = status => ({ status, contentType: 'application/problem+json', body: JSON.stringify({ status, title: 'Mocked failure.' }) });
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The citation markers: their text, link, and the result they point at in the list (if any). */
+async function answerMarkers(page) {
+  return page.locator('.answer-mark').evaluateAll(marks =>
+    marks.map(mark => {
+      const href = mark.getAttribute('href');
+      const target = href.startsWith('#') ? document.getElementById(href.slice(1)) : null;
+      return {
+        id: Number(mark.getAttribute('data-citation')),
+        text: mark.textContent.replace(/\s+/g, ' ').trim(),
+        href,
+        targetIsResult: !!target?.matches('[data-result]'),
+        targetRuling: target?.getAttribute('data-ruling-id') ?? null,
+        external: mark.target === '_blank' && mark.rel === 'noopener noreferrer',
+      };
+    }),
+  );
+}
+
+/** Notice, then the answer block, then the summary line, top to bottom. */
+const answerPlaced = page =>
+  page.evaluate(() => {
+    const box = selector => document.querySelector(selector)?.getBoundingClientRect();
+    const [notice, answer, summary] = [box('[data-notice]'), box('[data-answer]'), box('[data-summary]')];
+    return !!notice && !!answer && !!summary && notice.bottom <= answer.top && answer.bottom <= summary.top;
+  });
+
+const citationOf = (result, id) => ({
+  id,
+  rulingId: result.rulingId,
+  processNumber: result.processNumber,
+  tax: result.tax,
+  article: result.article,
+  date: result.date,
+  subject: result.subject,
+  section: result.section,
+  passage: result.passage,
+  sourceUrl: result.sourceUrl,
+});
+
+/** A mocked answer whose sentence i cites result i of a real search. */
+const mockAnswer = (results, texts) => ({
+  query: 'mock',
+  status: 'answered',
+  sentences: texts.map((text, i) => ({ text, citations: [i + 1] })),
+  citations: texts.map((_, i) => citationOf(results[i], i + 1)),
+  model: 'mock',
+  firstTokenMs: 1,
+  tookMs: 1,
+});
+
+/** Route-mocked states on the real results: loading, refused, unavailable, error and answer-only retry. */
+async function answerAdverse(browser, viewport, data) {
+  const label = `answer states @ ${viewport.width}px`;
+  const { context, page } = await openPage(browser, viewport, label);
+  const ids = data.first.results.map(r => r.rulingId);
+  let searches = 0;
+  page.on('request', request => {
+    if (new URL(request.url()).pathname === '/api/search') searches++;
+  });
+  const resultsUntouched = async () =>
+    same(await shownIds(page), ids) && (await page.locator('[data-error]').count()) === 0 && (await page.locator('[data-region]').getAttribute('aria-busy')) === null;
+
+  // Loading (held), then refused.
+  const hold = gate();
+  await page.route('**/api/answer?**', async route => {
+    await hold.opened;
+    await route.fulfill(json({ query: QUERY, status: 'refused', sentences: [{ text: REFUSAL_TEXT, citations: [] }], citations: [], model: 'mock', firstTokenMs: 1, tookMs: 1 }));
+  });
+  await page.goto(pageUrl({ q: QUERY }));
+  await waitForState(page, 'results');
+  await waitForAnswer(page, 'loading');
+  await waitForFacets(page);
+  check(label, await resultsUntouched(), 'the results are shown without waiting for the answer');
+  check(
+    label,
+    (await page.locator('[data-answer]').getAttribute('aria-busy')) === 'true' && (await page.locator('[data-region]').getAttribute('aria-busy')) === null,
+    'while the answer loads, aria-busy is on the answer block only',
+  );
+  check(label, (await page.locator('.answer-status').textContent()).trim() === 'A preparar a resposta…', 'loading reads "A preparar a resposta…"');
+  const animations = await page.locator('[data-answer] .bar').evaluateAll(bars => bars.map(bar => getComputedStyle(bar).animationName));
+  check(label, animations.length > 0 && animations.every(a => a === 'none'), 'the answer skeleton is static under prefers-reduced-motion: reduce');
+  check(label, await answerPlaced(page), 'the answer block sits below the notice and above the summary line');
+  await shot(page, 'answer-loading', viewport);
+  hold.release();
+  await waitForAnswer(page, 'refused');
+  check(label, (await page.locator('.answer-refused').textContent()).trim() === REFUSAL_TEXT && (await page.locator('.answer-mark').count()) === 0, 'a refused answer shows the fixed refusal and no markers');
+  check(label, await resultsUntouched(), 'the results stay as they were with a refusal');
+  check(label, same(await answerAnnouncements(page), [REFUSED_ANNOUNCEMENT]), 'the refusal is announced once in the answer live region');
+  check(label, same(await announcements(page), [`${ids.length} informações vinculativas encontradas.`]), 'the results are announced once, not repeated by the answer');
+  await shot(page, 'answer-refused', viewport);
+  await page.unroute('**/api/answer?**');
+
+  // Unavailable (503): a quiet note.
+  await page.route('**/api/answer?**', route => route.fulfill(problem(503)));
+  await page.reload();
+  await waitForState(page, 'results');
+  await waitForAnswer(page, 'unavailable');
+  await waitForFacets(page);
+  check(
+    label,
+    (await page.locator('[data-answer]').textContent()).includes('A resposta escrita não está disponível neste momento.') && (await page.locator('[data-answer-error]').count()) === 0,
+    'a 503 shows the quiet unavailable note, not an error',
+  );
+  check(label, await resultsUntouched(), 'the results are untouched when the answer is unavailable');
+  check(label, same(await answerAnnouncements(page), [UNAVAILABLE_ANNOUNCEMENT]), 'unavailable is announced once');
+  await shot(page, 'answer-unavailable', viewport);
+  await page.unroute('**/api/answer?**');
+
+  // Error, then an answer-only retry whose answer also has sentences that fail the client-side checks.
+  const valid = ['Primeira frase de teste, apoiada na primeira passagem.', 'Segunda frase de teste, apoiada na segunda passagem.'];
+  let attempts = 0;
+  await page.route('**/api/answer?**', async route => {
+    attempts++;
+    if (attempts === 1) return route.fulfill(problem(500));
+    await new Promise(r => setTimeout(r, 800));
+    const body = mockAnswer(data.first.results, valid);
+    body.sentences.push({ text: 'Frase com uma fonte desconhecida.', citations: [9] }, { text: 'Frase com uma ligação sem https.', citations: [3] });
+    body.citations.push({ ...citationOf(data.first.results[2], 3), sourceUrl: 'http://info.portaldasfinancas.gov.pt/x.pdf' });
+    try {
+      await route.fulfill(json(body));
+    } catch {
+      // The page went away.
+    }
+  });
+  await page.reload();
+  await waitForState(page, 'results');
+  await waitForAnswer(page, 'error');
+  await waitForFacets(page);
+  const searchesBefore = searches;
+  check(label, (await page.locator('[data-answer-error]').textContent()).includes('Não foi possível preparar a resposta.'), 'a failed answer shows the answer error');
+  check(label, await resultsUntouched(), 'an answer failure never changes the results region');
+  check(label, same(await answerAnnouncements(page), [ANSWER_ERROR_ANNOUNCEMENT]), 'the answer failure is announced once');
+  await shot(page, 'answer-error', viewport);
+
+  check(label, await tabTo(page, '[data-answer-error] button'), 'Tab reaches the answer retry button');
+  await clearAnnouncements(page);
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('[data-answer-error] button')?.textContent.includes('A tentar de novo'));
+  check(label, await activeMatches(page, '[data-answer-error] button'), 'focus stays on the answer retry button while retrying');
+  check(label, (await page.locator('[data-answer]').getAttribute('aria-busy')) === 'true', 'the answer block is busy while retrying');
+  await waitForAnswer(page, 'answered');
+  check(label, await activeMatches(page, '#answer-title'), 'after a successful retry focus moves to the answer heading');
+  check(label, searches === searchesBefore && attempts === 2, 'the retry requests only the answer again, not the search');
+  check(label, await resultsUntouched(), 'the results are unchanged after the answer retry');
+  check(label, same(await shownSentences(page), valid), 'sentences citing an unknown id or a citation without https are not shown');
+  const markers = await answerMarkers(page);
+  check(
+    label,
+    markers.length === 2 && markers.every((m, i) => m.targetIsResult && m.targetRuling === ids[i] && m.text.startsWith(`Processo ${data.first.results[i].processNumber}`)),
+    'each marker names the process number and links to its result in the list',
+  );
+  check(label, same(await answerAnnouncements(page), [ANSWERED_ANNOUNCEMENT]) && (await announcements(page)).length === 0, 'the recovered answer is announced once, the results not again');
+  await context.close();
+}
+
+/** A late answer of an earlier search, success or failure, never replaces or mixes with the current one. */
+async function answerOwnership(browser, viewport, data) {
+  const label = `answer ownership @ ${viewport.width}px`;
+  const { context, page } = await openPage(browser, viewport, label);
+  const aborted = [];
+  page.on('requestfailed', request => {
+    const url = new URL(request.url());
+    if (url.pathname === '/api/answer') aborted.push(url.searchParams.get('q') + '|' + (url.searchParams.get('tax') ?? ''));
+  });
+  await page.goto(BASE + '/');
+  await waitForFacets(page);
+  const current = 'Resposta de teste à pergunta atual, apoiada na primeira passagem.';
+  const earlier = 'Resposta de teste à pergunta anterior, que nunca deve aparecer.';
+
+  for (const outcome of ['success', 'failure']) {
+    let slowStarted = false;
+    aborted.length = 0;
+    await page.route('**/api/answer?**', async route => {
+      if (new URL(route.request().url()).searchParams.get('q') !== QUERY) return route.fulfill(json(mockAnswer(data.other.results, [current])));
+      slowStarted = true;
+      await new Promise(r => setTimeout(r, 2500));
+      try {
+        await route.fulfill(outcome === 'success' ? json(mockAnswer(data.first.results, [earlier])) : problem(500));
+      } catch {
+        // The page aborted the superseded request.
+      }
+    });
+    await page.locator('#q').focus();
+    await replaceQuery(page, QUERY);
+    await searchSettled(page, { q: QUERY }, () => page.keyboard.press('Enter'));
+    await waitForAnswer(page, 'loading');
+    await clearAnnouncements(page);
+    await replaceQuery(page, OTHER_QUERY);
+    await searchSettled(page, { q: OTHER_QUERY }, () => page.keyboard.press('Enter'));
+    await waitForAnswer(page, 'answered');
+    await page.waitForTimeout(3000);
+    check(label, slowStarted, `the earlier answer request (${outcome}) was sent and delayed`);
+    check(label, aborted.includes(`${QUERY}|`), `the new search aborted the earlier answer request (${outcome})`);
+    check(
+      label,
+      same(await shownSentences(page), [current]) && (await page.locator('[data-answer]').getAttribute('data-state')) === 'answered',
+      `a late earlier answer (${outcome}) never replaces the current answer`,
+    );
+    const markers = await answerMarkers(page);
+    check(label, markers.length === 1 && markers[0].targetRuling === data.other.results[0].rulingId, `the current answer links to the current results only (earlier ${outcome})`);
+    check(label, (await topRulingId(page)) === data.other.results[0].rulingId && (await page.locator('[data-error]').count()) === 0, `the results belong to the later search (earlier ${outcome})`);
+    check(label, same(await answerAnnouncements(page), [ANSWERED_ANNOUNCEMENT]), `only the current answer is announced (earlier ${outcome})`);
+    await page.unroute('**/api/answer?**');
+  }
+
+  // A tax change while the answer loads abandons it; its late success is never shown.
+  aborted.length = 0;
+  const hold = gate();
+  let heldStarted = false;
+  await page.route('**/api/answer?**', async route => {
+    if (new URL(route.request().url()).searchParams.get('tax')) return route.fulfill(problem(503));
+    heldStarted = true;
+    await hold.opened;
+    try {
+      await route.fulfill(json(mockAnswer(data.first.results, [earlier])));
+    } catch {
+      // The page aborted the superseded request.
+    }
+  });
+  await page.locator('#q').focus();
+  await replaceQuery(page, QUERY);
+  await searchSettled(page, { q: QUERY, tax: '' }, () => page.keyboard.press('Enter'));
+  await waitForAnswer(page, 'loading');
+  await searchSettled(page, { q: QUERY, tax: data.filter.tax }, () => page.locator('#d-tax').selectOption(data.filter.tax));
+  await waitForAnswer(page, 'unavailable');
+  hold.release();
+  await page.waitForTimeout(1000);
+  check(label, heldStarted && aborted.includes(`${QUERY}|`), 'a tax change aborts the pending answer request');
+  check(
+    label,
+    (await page.locator('[data-answer]').getAttribute('data-state')) === 'unavailable' && (await shownSentences(page)).length === 0,
+    'the answer of the unfiltered search is never shown after the tax change',
+  );
+  await page.unroute('**/api/answer?**');
+  await context.close();
+}
+
+/**
+ * The answered state on the real index with the real answer model. One live generation is rendered at
+ * every width (the page is resized), since a generation takes tens of seconds and a loaded CPU can reach
+ * the server's time limit; a response that is not an answer is requested once more by reloading.
+ */
+async function answerReal(browser, data) {
+  const [first, ...others] = VIEWPORTS;
+  const label = `answer @ ${first.width}px`;
+  const { context, page } = await openPage(browser, first, label, { realAnswers: true });
+  let response;
+  let body;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const answered = page.waitForResponse(r => new URL(r.url()).pathname === '/api/answer', { timeout: ANSWER_TIMEOUT });
+    if (attempt === 1) await page.goto(pageUrl({ q: QUERY }));
+    else await page.reload();
+    await waitForState(page, 'results');
+    check(
+      label,
+      (await page.locator('[data-answer]').getAttribute('data-state')) === 'loading' && same(await shownIds(page), data.first.results.map(r => r.rulingId)),
+      'the results are shown before the answer, which is still loading',
+    );
+    response = await answered;
+    body = await response.json().catch(() => null);
+    const summary = `HTTP ${response.status()}, status ${body?.status}, model ${body?.model}, first token ${Math.round(body?.firstTokenMs ?? 0)} ms, total ${Math.round(body?.tookMs ?? 0)} ms`;
+    if (response.status() === 200 && body?.status === 'answered') {
+      check(label, true, `the real model answered (attempt ${attempt}, ${summary})`);
+      break;
+    }
+    if (attempt === 2) check(label, false, `the real model answered (attempt ${attempt}, ${summary})`);
+    else console.log(`note ${label}: attempt 1 was not an answer (${summary}); requesting once more`);
+  }
+  await page.waitForSelector('[data-answer]:not([aria-busy])', { timeout: 15_000 });
+  await waitForFacets(page);
+  const ok = response.status() === 200 && body?.status === 'answered';
+  for (const viewport of [first, ...others]) {
+    const at = `answer @ ${viewport.width}px`;
+    if (viewport !== first) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => {
+        document.activeElement?.blur();
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(300);
+    }
+    if (ok) await checkAnswered(page, at, body, data);
+    check(at, await answerPlaced(page), 'the answer block sits below the notice and above the summary line');
+    await shot(page, 'answer', viewport);
+    if (ok) await markerFocus(page, at, viewport);
+  }
+  await context.close();
+}
+
+/** The shown answer matches the response: sentences, markers, links and one announcement each. */
+async function checkAnswered(page, label, body, data) {
+  check(label, same(await shownSentences(page), body.sentences.map(s => s.text)), `the ${body.sentences.length} sentences of the response are shown`);
+  const perSentence = await page.locator('.answer-marks').evaluateAll(groups => groups.map(g => g.querySelectorAll('.answer-mark').length));
+  check(label, perSentence.length === body.sentences.length && perSentence.every(n => n > 0), 'every sentence ends with at least one citation marker');
+  const markers = await answerMarkers(page);
+  const byId = new Map(body.citations.map(c => [c.id, c]));
+  const expected = body.sentences.flatMap(s => s.citations);
+  check(
+    label,
+    same(markers.map(m => m.id), expected) &&
+      markers.every(m => {
+        const c = byId.get(m.id);
+        if (!c || !m.text.startsWith(`Processo ${c.processNumber}`)) return false;
+        return m.targetIsResult ? m.targetRuling === c.rulingId : m.external && m.href === c.sourceUrl;
+      }),
+    `every marker names its process number and links to the cited result (${markers.filter(m => m.targetIsResult).length} of ${markers.length} in the list)`,
+  );
+  check(label, same(await answerAnnouncements(page), [ANSWERED_ANNOUNCEMENT]), 'the answer is announced once in its own live region');
+  check(label, same(await announcements(page), [`${data.first.results.length} informações vinculativas encontradas.`]), 'the results are announced once, not repeated');
+}
+
+/** Keyboard: a marker moves focus to the cited result, and the next Tab reaches its official PDF. */
+async function markerFocus(page, label, viewport) {
+  check(label, await tabTo(page, '.answer-mark'), 'Tab reaches the first citation marker');
+  const href = await page.evaluate(() => document.activeElement.getAttribute('href'));
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  const focused = await page.evaluate(() => {
+    const active = document.activeElement;
+    const r = active.getBoundingClientRect();
+    return { id: active.id, isResult: active.matches('[data-result]'), visible: r.top >= 0 && r.top < window.innerHeight };
+  });
+  if (!href.startsWith('#')) {
+    check(label, false, `the first marker links outside the list (${href}); the focus move could not be checked`);
+    return;
+  }
+  check(label, focused.isResult && `#${focused.id}` === href && focused.visible, `activating the marker moves focus to the cited result ${href}, scrolled into view`);
+  await shot(page, 'answer-cited', viewport, { scrolled: true });
+  await page.keyboard.press('Tab');
+  check(
+    label,
+    await page.evaluate(id => {
+      const active = document.activeElement;
+      return active.closest('[data-result]')?.id === id && active.matches('.actions a') && active.href.startsWith('https://');
+    }, focused.id),
+    'the next Tab reaches the cited result\'s "Abrir PDF oficial" link',
+  );
+}
+
 // ---- Main ----
 
 preflight();
@@ -740,8 +1136,13 @@ try {
     await multiTax(browser, viewport, data);
     await emptyAndRecovery(browser, viewport, data);
     await errorAndRetry(browser, viewport, data);
+    await answerAdverse(browser, viewport, data);
   }
   await requestOwnership(browser, VIEWPORTS[0], data);
+  await answerOwnership(browser, VIEWPORTS[0], data);
+  // Last, so the model has loaded meanwhile and no other scenario competes for the CPU.
+  await waitForAnswerModel(api);
+  await answerReal(browser, data);
 } catch (error) {
   failures.push(`run aborted: ${error.stack ?? error}`);
 } finally {

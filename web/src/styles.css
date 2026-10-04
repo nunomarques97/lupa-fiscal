@@ -85,6 +85,24 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2
 .state.error h2 { color: var(--danger); }
 .skeleton { display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: var(--s5); padding: var(--s5) 0; border-bottom: 1px solid var(--rule); }
 .bar { height: 14px; background: var(--paper-2); border-radius: 3px; margin-bottom: var(--s2); }
+/* Answer: generated text, set apart from the quoted passages (sans, white card, accent rule). */
+.answer { margin: 0 0 var(--s5); padding: var(--s4) var(--s5); background: #fff; border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 2px; }
+.answer-title { font: 600 15px/1.4 var(--sans); margin: 0; }
+.answer-title:focus { outline: none; }
+.answer-title:focus-visible { outline: 3px solid var(--focus); }
+.answer-note { margin: 0 0 var(--s3); font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+.answer-text { margin: 0; max-width: 68ch; font-size: 17px; line-height: 1.6; overflow-wrap: anywhere; }
+.answer-marks { font-size: 14px; color: var(--ink-3); }
+.answer-mark { font-weight: 600; white-space: nowrap; }
+.answer-status, .answer-refused { margin: 0 0 var(--s2); color: var(--ink-2); }
+.answer-skeleton { max-width: 68ch; }
+.answer-error p { margin: 0 0 var(--s3); color: var(--ink-2); }
+.answer-error strong { color: var(--danger); }
+.answer-quiet { margin: 0 0 var(--s4); font-size: 14px; line-height: 1.45; color: var(--ink-3); }
+.answer-quiet:focus { outline: none; }
+.result:focus { outline: none; }
+.result:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+
 .examples { padding-left: 1.2em; margin: 0; }
 .examples li { margin-bottom: var(--s2); }
 
@@ -135,4 +153,6 @@ footer p { max-width: 1240px; margin: 0 auto; padding: var(--s4) var(--s6); }
   .actions { gap: var(--s2) var(--s4); }
   .actions a, .actions button { display: inline-flex; align-items: center; min-height: 44px; }
   .state { padding: var(--s5) 0; }
+  .answer { padding: var(--s3) var(--s4); margin-bottom: var(--s4); }
+  .answer-text { font-size: 16px; }
 }

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SearchApi, SearchResponse, SearchResult } from './api';
+import { AnswerStore } from './answer-store';
+import { AnswerResponse, SearchApi, SearchResponse, SearchResult } from './api';
 import { SearchParams } from './search-params';
 import { ERROR_ANNOUNCEMENT, SearchStore } from './search-store';
 
@@ -17,10 +18,24 @@ interface Pending {
  */
 class FakeApi {
   readonly calls: Pending[] = [];
+  readonly answers: { params: SearchParams; signal: AbortSignal; resolve: (r: AnswerResponse) => void; reject: (e: unknown) => void }[] = [];
   search(params: SearchParams, signal: AbortSignal): Promise<SearchResponse> {
     return new Promise((resolve, reject) => this.calls.push({ params, signal, resolve, reject }));
   }
+  answer(params: SearchParams, signal: AbortSignal): Promise<AnswerResponse> {
+    return new Promise((resolve, reject) => this.answers.push({ params, signal, resolve, reject }));
+  }
 }
+
+const answer = (text: string, rulingId: string): AnswerResponse => ({
+  query: 'q',
+  status: 'answered',
+  sentences: [{ text, citations: [1] }],
+  citations: [{ ...result(rulingId), id: 1 }],
+  model: 'm',
+  firstTokenMs: 1,
+  tookMs: 2,
+});
 
 // An article is only sent with its tax, as the filters do.
 const params = (q: string, article = '', tax = article ? 'CIRS' : ''): SearchParams => ({ q, tax, article, year: '' });
@@ -48,11 +63,13 @@ const flush = () => new Promise(resolve => setTimeout(resolve));
 describe('SearchStore', () => {
   let api: FakeApi;
   let store: SearchStore;
+  let answers: AnswerStore;
 
   beforeEach(() => {
     api = new FakeApi();
     TestBed.configureTestingModule({ providers: [{ provide: SearchApi, useValue: api }] });
     store = TestBed.inject(SearchStore);
+    answers = TestBed.inject(AnswerStore);
   });
 
   it('keeps the later success when an earlier search fails afterwards', async () => {
@@ -201,5 +218,122 @@ describe('SearchStore', () => {
     await flush();
     expect(store.state()).toEqual({ kind: 'initial' });
     expect(store.submitted()).toBeNull();
+  });
+
+  describe('answer', () => {
+    it('is requested only after the search returns results, with the same parameters', async () => {
+      void store.search(params('a', '13'));
+      expect(api.answers).toHaveLength(0);
+      expect(answers.state().kind).toBe('idle');
+      api.calls[0].resolve(response('A1'));
+      await flush();
+      expect(store.state().kind).toBe('results');
+      expect(api.answers.map(a => a.params)).toEqual([params('a', '13')]);
+      expect(answers.state().kind).toBe('loading');
+
+      api.answers[0].resolve(answer('Pode deduzir.', 'A1'));
+      await flush();
+      expect(answers.state().kind).toBe('answered');
+      // The answer has its own announcement; the results announcement is not repeated or replaced.
+      expect(store.announcement()).toBe('1 informação vinculativa encontrada.');
+      expect(answers.announcement()).not.toBe('');
+    });
+
+    it('is not requested for an empty result, an error or a blank reset', async () => {
+      void store.search(params('a', '99-F'));
+      api.calls[0].resolve(response());
+      await flush();
+      expect(store.state().kind).toBe('empty');
+
+      void store.search(params('b'));
+      api.calls[1].reject(new Error('500'));
+      await flush();
+      expect(store.state().kind).toBe('error');
+
+      store.reset();
+      expect(api.answers).toHaveLength(0);
+      expect(answers.state()).toEqual({ kind: 'idle' });
+    });
+
+    it('is aborted by a new search, a filter change, a retry and a reset', async () => {
+      const answerFor = async (q: string, filter = '') => {
+        void store.search(params(q, filter));
+        api.calls.at(-1)!.resolve(response(q));
+        await flush();
+        return api.answers.at(-1)!;
+      };
+
+      let pending = await answerFor('a');
+      void store.search(params('b'));
+      expect(pending.signal.aborted).toBe(true);
+      expect(answers.state()).toEqual({ kind: 'idle' });
+      api.calls.at(-1)!.reject(new Error('500'));
+      await flush();
+
+      pending = await answerFor('c');
+      void store.search(params('c', '13'));
+      expect(pending.signal.aborted).toBe(true);
+      expect(answers.busy()).toBe(false);
+      api.calls.at(-1)!.reject(new Error('500'));
+      await flush();
+
+      pending = await answerFor('d');
+      void store.retry();
+      expect(pending.signal.aborted).toBe(true);
+      api.calls.at(-1)!.reject(new Error('500'));
+      await flush();
+
+      pending = await answerFor('e');
+      store.reset();
+      expect(pending.signal.aborted).toBe(true);
+      expect(answers.state()).toEqual({ kind: 'idle' });
+    });
+
+    for (const outcome of ['success', 'failure'] as const) {
+      it(`never shows a late earlier answer (${outcome}) with the results of a later search`, async () => {
+        void store.search(params('a'));
+        api.calls[0].resolve(response('A1'));
+        await flush();
+        const earlier = api.answers[0];
+
+        void store.search(params('b'));
+        api.calls[1].resolve(response('B1'));
+        await flush();
+        expect(api.answers).toHaveLength(2);
+        api.answers[1].resolve(answer('Resposta B.', 'B1'));
+        await flush();
+
+        if (outcome === 'success') earlier.resolve(answer('Resposta A.', 'A1'));
+        else earlier.reject(new Error('500'));
+        await flush();
+
+        const state = answers.state();
+        expect(state.kind === 'answered' && state.params.q).toBe('b');
+        expect(state.kind === 'answered' && state.answer.citations.map(c => c.rulingId)).toEqual(['B1']);
+        const results = store.state();
+        expect(results.kind === 'results' && results.response.results.map(r => r.rulingId)).toEqual(['B1']);
+      });
+    }
+
+    it('never changes the results when it fails, and its retry works', async () => {
+      void store.search(params('a'));
+      api.calls[0].resolve(response('A1', 'A2'));
+      await flush();
+      const before = store.state();
+
+      api.answers[0].reject(new Error('500'));
+      await flush();
+      expect(answers.state().kind).toBe('error');
+      expect(store.state()).toBe(before);
+      expect(store.announcement()).toBe('2 informações vinculativas encontradas.');
+
+      const retry = answers.retry();
+      expect(api.answers[1].params).toEqual(params('a'));
+      expect(api.calls).toHaveLength(1);
+      api.answers[1].resolve(answer('Pode deduzir.', 'A1'));
+      await retry;
+      expect(answers.state().kind).toBe('answered');
+      expect(store.state()).toBe(before);
+    });
   });
 });

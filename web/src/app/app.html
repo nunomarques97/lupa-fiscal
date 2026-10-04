@@ -46,6 +46,11 @@
     </div>
 
     <div class="sr-only" aria-live="polite" data-live>{{ store.announcement() }}</div>
+    <div class="sr-only" aria-live="polite" data-answer-live>{{ answers.announcement() }}</div>
+
+    @if (answerResults(); as results) {
+      <app-answer-block [results]="results" />
+    }
 
     <section class="region" aria-label="Resultados" [attr.aria-busy]="store.busy() ? 'true' : null" data-region>
       @if (state().kind === 'initial') {

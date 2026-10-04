@@ -12,6 +12,8 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
+import { AnswerBlock } from './answer-block';
+import { AnswerStore } from './answer-store';
 import { FacetsResponse, SearchApi } from './api';
 import { FilterFields } from './filter-fields';
 import { articlePhrase, rulingCount, taxLabel } from './format';
@@ -25,11 +27,12 @@ const NARROW = '(max-width: 720px)';
 
 @Component({
   selector: 'app-root',
-  imports: [FilterFields, ResultItem, RouterLink],
+  imports: [AnswerBlock, FilterFields, ResultItem, RouterLink],
   templateUrl: './app.html',
 })
 export class App {
   protected readonly store = inject(SearchStore);
+  protected readonly answers = inject(AnswerStore);
   private readonly api = inject(SearchApi);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
@@ -61,6 +64,11 @@ export class App {
   protected readonly retrying = computed(() => {
     const state = this.state();
     return state.kind === 'loading' && state.retrying;
+  });
+  /** The results the answer belongs to; the answer block is shown only with them. */
+  protected readonly answerResults = computed(() => {
+    const state = this.state();
+    return state.kind === 'results' && this.answers.state().kind !== 'idle' ? state.response.results : null;
   });
   /** The error block also stays while a retry runs, so focus can stay on "Tentar de novo". */
   protected readonly showError = computed(() => this.state().kind === 'error' || this.retrying());

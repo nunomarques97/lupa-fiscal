@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 
+import { AnswerStore } from './answer-store';
 import { SearchApi, SearchResponse } from './api';
 import { foundAnnouncement, isHttpsUrl } from './format';
 import { SearchParams } from './search-params';
@@ -17,11 +18,13 @@ export type SearchState =
 /**
  * Owns the search requests. Only the latest submitted search may change the state: each run takes
  * a new sequence number and aborts the previous request, and a completion whose number is no longer
- * current is dropped, whether it succeeded or failed.
+ * current is dropped, whether it succeeded or failed. The answer belongs to the search: it is requested
+ * only once a search returns results, and abandoned whenever another search starts or the page resets.
  */
 @Injectable({ providedIn: 'root' })
 export class SearchStore {
   private readonly api = inject(SearchApi);
+  private readonly answers = inject(AnswerStore);
   private sequence = 0;
   private controller: AbortController | null = null;
 
@@ -50,6 +53,7 @@ export class SearchStore {
   reset(): void {
     this.sequence++;
     this.abortPending();
+    this.answers.clear();
     this.lastSubmitted.set(null);
     this.liveText.set('');
     this.current.set({ kind: 'initial' });
@@ -65,6 +69,7 @@ export class SearchStore {
     this.abortPending();
     const controller = new AbortController();
     this.controller = controller;
+    this.answers.clear();
 
     this.lastSubmitted.set(params);
     this.liveText.set('');
@@ -78,6 +83,8 @@ export class SearchStore {
       const shown = { ...response, results };
       this.current.set(results.length ? { kind: 'results', params, response: shown } : { kind: 'empty', params, response: shown });
       this.liveText.set(foundAnnouncement(results.length));
+      // The results are shown first; the answer to the same search follows when it is ready.
+      if (results.length) void this.answers.start(params);
     } catch {
       if (id !== this.sequence) return;
       this.current.set({ kind: 'error', params });
